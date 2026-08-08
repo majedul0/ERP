@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
-import { useState } from 'react';
 import { usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import PendingInvitationsModal from '@/components/pending-invitations-modal';
 import { companyQuickActions, useCompanyBrand } from '@/modules/company';
 import { DashboardHero, TodaysSalesTable } from '@/modules/dashboard';
