@@ -134,6 +134,40 @@ Complex authorization also lives in Form Requests (`app/Http/Requests/Teams/*`) 
 - PHPStan runs at **level 7** over `app/`, `bootstrap/app.php`, `config/`, `database/`, `routes/`.
   Models carry `@property` docblocks and relations carry generic annotations to satisfy Larastan.
 
+### Invoicing domain
+
+Tables are tenant-scoped by `team_id` and reached through relations on `Team`
+(`$team->products()`, `->distributors()`, `->invoices()`) rather than a global scope — there
+is no `where('team_id', ...)` to forget.
+
+Two rules hold the books together; break either and the numbers stop reconciling:
+
+- **Money is integer minor units** (`App\Support\Money`), never floats or decimals. Columns
+  are `bigInteger`. Convert at the HTTP boundary only — `Money::fromInput()` in,
+  `Money::toDecimal()` out.
+- **The server recomputes every amount** in `CreateInvoice` from the locked product rows. The
+  browser's totals are for the person filling the form and are never read back, so a stale
+  price or a hand-edited request cannot decide what an invoice is worth.
+
+Concurrency, because several staff at one company sell at the same time:
+
+- **Invoice numbers** — `App\Support\InvoiceNumbers` layers a Redis `Cache::lock` (cheap
+  contention, per company) over `SELECT ... FOR UPDATE` on `invoice_sequences` (correctness,
+  survives Redis being down) over a unique index on `(team_id, invoice_number)` (backstop).
+  Allocation happens *inside* the invoice transaction, so a rejected invoice returns its
+  number instead of leaving a hole.
+- **Stock** — products are locked `FOR UPDATE` in ascending id order, always after the
+  distributor, so concurrent invoices queue rather than deadlock. Quantities are summed per
+  product before the check: the same product on two lines must fit *together*.
+- **Delivery status** — `UpdateDeliveryStatus` re-reads the status under the lock, so two
+  people pressing the same button move stock once. `DeliveryStatus::holdsStock()` decides
+  which transitions return stock to the shelf.
+
+Verified out-of-band against real Postgres and Redis, not just the sqlite test suite: 20
+concurrent processes against 10 units of stock produced exactly 10 invoices, 10 distinct
+numbers, and a stock of 0; 30 concurrent invoices produced INV1–INV30 with no duplicates and
+an exactly correct distributor balance.
+
 ### Queues (Horizon)
 
 Horizon only supports the **Redis** queue driver — switching `QUEUE_CONNECTION` to `database`
