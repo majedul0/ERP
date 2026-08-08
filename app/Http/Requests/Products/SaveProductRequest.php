@@ -28,9 +28,13 @@ class SaveProductRequest extends FormRequest
                     ->whereNull('deleted_at'),
             ],
             'carton_size' => ['required', 'integer', 'min:1', 'max:100000'],
-            'distributor_price' => ['required', 'numeric', 'min:0', 'max:99999999'],
-            'trade_price' => ['required', 'numeric', 'min:0', 'max:99999999'],
-            'mrp' => ['required', 'numeric', 'min:0', 'max:99999999'],
+
+            // `integer`, not `numeric`: prices are whole amounts with no
+            // fractional part, and a typed `90.5` should be corrected by the
+            // person entering it rather than silently rounded here.
+            'distributor_price' => ['required', 'integer', 'min:0', 'max:99999999'],
+            'trade_price' => ['required', 'integer', 'min:0', 'max:99999999'],
+            'mrp' => ['required', 'integer', 'min:0', 'max:99999999'],
             'stock_quantity' => ['required', 'integer', 'min:0', 'max:100000000'],
             'photo' => [
                 'nullable',
@@ -39,6 +43,18 @@ class SaveProductRequest extends FormRequest
                 'mimes:jpg,jpeg,png,webp',
                 'max:'.(int) config('company.storage.product_photos.max_kilobytes'),
             ],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'distributor_price.integer' => __('Prices must be whole amounts, with no decimals.'),
+            'trade_price.integer' => __('Prices must be whole amounts, with no decimals.'),
+            'mrp.integer' => __('Prices must be whole amounts, with no decimals.'),
         ];
     }
 
