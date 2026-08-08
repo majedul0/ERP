@@ -13,7 +13,6 @@ use App\Models\Invoice;
 use App\Models\Product;
 use App\Support\InvoiceNumbers;
 use App\Support\InvoicePresenter;
-use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -70,7 +69,7 @@ class InvoiceController extends Controller
                     'name' => $product->name,
                     'sku' => $product->sku,
                     'cartonSize' => $product->carton_size,
-                    'distributorPrice' => Money::toDecimal($product->distributor_price),
+                    'distributorPrice' => $product->distributor_price,
                     'stockQuantity' => $product->stock_quantity,
                 ])
                 ->all(),
