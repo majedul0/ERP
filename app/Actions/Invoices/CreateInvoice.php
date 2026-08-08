@@ -35,8 +35,8 @@ class CreateInvoice
      *     sold_at: string,
      *     comment?: string|null,
      *     scheme_description?: string|null,
-     *     scheme_amount?: float|int|null,
-     *     items: list<array{product_id: int, carton_quantity?: int, total_quantity: int, unit_price?: float|int|null, discount?: float|int|null, remarks?: string|null}>
+     *     scheme_amount?: int|null,
+     *     items: list<array{product_id: int, carton_quantity?: int, total_quantity: int, unit_price?: int|null, discount?: int|null, remarks?: string|null}>
      * }  $data
      */
     public function handle(Team $team, User $user, array $data): Invoice
