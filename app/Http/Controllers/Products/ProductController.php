@@ -7,7 +7,6 @@ use App\Concerns\ResolvesCurrentTeam;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Products\SaveProductRequest;
 use App\Models\Product;
-use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -69,9 +68,9 @@ class ProductController extends Controller
             'name' => $product->name,
             'sku' => $product->sku,
             'cartonSize' => $product->carton_size,
-            'distributorPrice' => Money::toDecimal($product->distributor_price),
-            'tradePrice' => Money::toDecimal($product->trade_price),
-            'mrp' => Money::toDecimal($product->mrp),
+            'distributorPrice' => $product->distributor_price,
+            'tradePrice' => $product->trade_price,
+            'mrp' => $product->mrp,
             'stockQuantity' => $product->stock_quantity,
             'photoUrl' => $product->photoUrl(),
         ];
