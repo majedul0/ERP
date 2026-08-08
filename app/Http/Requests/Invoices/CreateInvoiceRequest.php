@@ -30,7 +30,8 @@ class CreateInvoiceRequest extends FormRequest
 
             'comment' => ['nullable', 'string', 'max:2000'],
             'scheme_description' => ['nullable', 'string', 'max:255'],
-            'scheme_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            // Whole amounts throughout — see App\Support\Money.
+            'scheme_amount' => ['nullable', 'integer', 'min:0', 'max:99999999'],
 
             'items' => ['required', 'array', 'min:1', 'max:200'],
             'items.*.product_id' => [
@@ -42,8 +43,8 @@ class CreateInvoiceRequest extends FormRequest
             ],
             'items.*.carton_quantity' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'items.*.total_quantity' => ['required', 'integer', 'min:1', 'max:10000000'],
-            'items.*.unit_price' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
-            'items.*.discount' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'items.*.unit_price' => ['nullable', 'integer', 'min:0', 'max:99999999'],
+            'items.*.discount' => ['nullable', 'integer', 'min:0', 'max:99999999'],
             'items.*.remarks' => ['nullable', 'string', 'max:255'],
         ];
     }
@@ -60,8 +61,8 @@ class CreateInvoiceRequest extends FormRequest
      *     sold_at: string,
      *     comment: string|null,
      *     scheme_description: string|null,
-     *     scheme_amount: float,
-     *     items: list<array{product_id: int, carton_quantity: int, total_quantity: int, unit_price: float|null, discount: float, remarks: string|null}>
+     *     scheme_amount: int,
+     *     items: list<array{product_id: int, carton_quantity: int, total_quantity: int, unit_price: int|null, discount: int, remarks: string|null}>
      * }
      */
     public function invoiceData(): array
@@ -79,13 +80,13 @@ class CreateInvoiceRequest extends FormRequest
             'scheme_description' => isset($validated['scheme_description'])
                 ? (string) $validated['scheme_description']
                 : null,
-            'scheme_amount' => (float) ($validated['scheme_amount'] ?? 0),
+            'scheme_amount' => (int) ($validated['scheme_amount'] ?? 0),
             'items' => array_values(array_map(fn (array $item): array => [
                 'product_id' => (int) $item['product_id'],
                 'carton_quantity' => (int) ($item['carton_quantity'] ?? 0),
                 'total_quantity' => (int) $item['total_quantity'],
-                'unit_price' => isset($item['unit_price']) ? (float) $item['unit_price'] : null,
-                'discount' => (float) ($item['discount'] ?? 0),
+                'unit_price' => isset($item['unit_price']) ? (int) $item['unit_price'] : null,
+                'discount' => (int) ($item['discount'] ?? 0),
                 'remarks' => isset($item['remarks']) ? (string) $item['remarks'] : null,
             ], $items)),
         ];
