@@ -8,7 +8,6 @@ use App\Models\Invoice;
 use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Support\InvoicePresenter;
-use App\Support\Money;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -54,7 +53,7 @@ class DashboardController extends Controller
      * PHP — these run on every dashboard load, and the row count grows without
      * bound. Cancelled invoices are excluded: they are not sales.
      *
-     * @return array{total: float, sales: float, distributorPayments: float, expenses: float, promotions: float}
+     * @return array{total: int, sales: int, distributorPayments: int, expenses: int, promotions: int}
      */
     private function stats(Team $team): array
     {
@@ -69,14 +68,14 @@ class DashboardController extends Controller
 
         return [
             // What distributors owe the company overall.
-            'total' => Money::toDecimal($outstanding),
-            'sales' => Money::toDecimal((int) ($today->net ?? 0)),
+            'total' => $outstanding,
+            'sales' => (int) ($today->net ?? 0),
 
             // Payments and expenses land here when those modules ship; the
             // figures are honest zeros until then, not invented numbers.
-            'distributorPayments' => 0.0,
-            'expenses' => 0.0,
-            'promotions' => Money::toDecimal((int) ($today->schemes ?? 0)),
+            'distributorPayments' => 0,
+            'expenses' => 0,
+            'promotions' => (int) ($today->schemes ?? 0),
         ];
     }
 
