@@ -19,8 +19,7 @@ class ProductFactory extends Factory
      */
     public function definition(): array
     {
-        // Minor units: 9000 is 90.00.
-        $distributorPrice = fake()->numberBetween(1000, 50000);
+        $distributorPrice = fake()->numberBetween(10, 500);
 
         return [
             'team_id' => Team::factory(),
@@ -28,8 +27,8 @@ class ProductFactory extends Factory
             'sku' => Str::upper(Str::random(8)),
             'carton_size' => fake()->randomElement([12, 24, 48]),
             'distributor_price' => $distributorPrice,
-            'trade_price' => $distributorPrice + 500,
-            'mrp' => $distributorPrice + 1500,
+            'trade_price' => $distributorPrice + 5,
+            'mrp' => $distributorPrice + 15,
             'stock_quantity' => fake()->numberBetween(50, 500),
             'photo_path' => null,
         ];
