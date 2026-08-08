@@ -1,0 +1,14 @@
+<?php
+
+use App\Models\TeamInvitation;
+use Illuminate\Support\Facades\Schedule;
+
+// Populates the Horizon metrics dashboard; it stays blank without this.
+Schedule::command('horizon:snapshot')->everyFiveMinutes();
+
+Schedule::call(function () {
+    TeamInvitation::query()
+        ->whereNotNull('expires_at')
+        ->where('expires_at', '<', now())
+        ->delete();
+})->daily()->description('Delete expired team invitations');
