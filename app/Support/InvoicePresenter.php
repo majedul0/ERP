@@ -9,8 +9,8 @@ use App\Models\Invoice;
  * Shapes invoices for the React side.
  *
  * One place, so the dashboard row and the invoice screen cannot disagree about
- * what an amount or a status is called, and so minor units are converted to
- * decimals exactly once on the way out.
+ * what an amount or a status is called. Amounts are whole integers in the
+ * database and stay whole integers in the payload.
  */
 final class InvoicePresenter
 {
@@ -28,7 +28,7 @@ final class InvoicePresenter
             'distributorUrl' => null,
             'proprietorName' => $invoice->distributor->proprietor_name ?? '',
             'saleAt' => $invoice->sold_at->toIso8601String(),
-            'amount' => Money::toDecimal($invoice->total_amount),
+            'amount' => $invoice->total_amount,
             'deliveryStatus' => $invoice->delivery_status->value,
             'detailUrl' => "/{$teamSlug}/sales/invoices/{$invoice->id}",
         ];
@@ -49,11 +49,11 @@ final class InvoicePresenter
             'deliveryStatusLabel' => $invoice->delivery_status->label(),
             'comment' => $invoice->comment,
             'schemeDescription' => $invoice->scheme_description,
-            'schemeAmount' => Money::toDecimal($invoice->scheme_amount),
-            'invoiceTotal' => Money::toDecimal($invoice->invoice_total),
-            'discountTotal' => Money::toDecimal($invoice->discount_total),
-            'previousDues' => Money::toDecimal($invoice->previous_dues),
-            'totalAmount' => Money::toDecimal($invoice->total_amount),
+            'schemeAmount' => $invoice->scheme_amount,
+            'invoiceTotal' => $invoice->invoice_total,
+            'discountTotal' => $invoice->discount_total,
+            'previousDues' => $invoice->previous_dues,
+            'totalAmount' => $invoice->total_amount,
             'createdBy' => $invoice->creator?->name,
             'distributor' => self::distributor($invoice->distributor),
             'items' => $invoice->items->map(fn ($item) => [
@@ -64,9 +64,9 @@ final class InvoicePresenter
                 'productSku' => $item->product_sku,
                 'cartonQuantity' => $item->carton_quantity,
                 'totalQuantity' => $item->total_quantity,
-                'unitPrice' => Money::toDecimal($item->unit_price),
-                'amount' => Money::toDecimal($item->amount),
-                'discount' => Money::toDecimal($item->discount),
+                'unitPrice' => $item->unit_price,
+                'amount' => $item->amount,
+                'discount' => $item->discount,
                 'remarks' => $item->remarks,
             ])->all(),
         ];
@@ -87,7 +87,7 @@ final class InvoicePresenter
             'district' => $distributor->district,
             'division' => $distributor->division,
             'fullAddress' => $distributor->fullAddress(),
-            'balance' => Money::toDecimal($distributor->balance),
+            'balance' => $distributor->balance,
         ];
     }
 }
