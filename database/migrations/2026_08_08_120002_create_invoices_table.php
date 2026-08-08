@@ -34,8 +34,8 @@ return new class extends Migration
             $table->text('comment')->nullable();
             $table->string('scheme_description')->nullable();
 
-            // All amounts in minor units. Totals are stored, not derived at
-            // read time, so a later price change cannot rewrite history.
+            // Whole currency units. Totals are stored, not derived at read
+            // time, so a later price change cannot rewrite history.
             $table->bigInteger('scheme_amount')->default(0);
             $table->bigInteger('invoice_total')->default(0);
             $table->bigInteger('discount_total')->default(0);

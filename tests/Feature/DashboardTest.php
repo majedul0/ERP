@@ -67,8 +67,8 @@ class DashboardTest extends TestCase
             'invoice_number' => 'INV1',
             'sequence_number' => 1,
             'sold_at' => now(),
-            'invoice_total' => 456000,
-            'total_amount' => 456000,
+            'invoice_total' => 4560,
+            'total_amount' => 4560,
         ]);
 
         Invoice::create([
@@ -77,8 +77,8 @@ class DashboardTest extends TestCase
             'invoice_number' => 'INV2',
             'sequence_number' => 2,
             'sold_at' => now()->subDay(),
-            'invoice_total' => 100000,
-            'total_amount' => 100000,
+            'invoice_total' => 1000,
+            'total_amount' => 1000,
         ]);
 
         $response = $this->actingAs($user)->get(route('dashboard'));
@@ -105,8 +105,8 @@ class DashboardTest extends TestCase
             'invoice_number' => 'INV1',
             'sequence_number' => 1,
             'sold_at' => now(),
-            'invoice_total' => 999900,
-            'total_amount' => 999900,
+            'invoice_total' => 9999,
+            'total_amount' => 9999,
         ]);
 
         $this->actingAs($user)
@@ -129,8 +129,8 @@ class DashboardTest extends TestCase
             'sequence_number' => 1,
             'sold_at' => now(),
             'delivery_status' => DeliveryStatus::Cancelled,
-            'invoice_total' => 456000,
-            'total_amount' => 456000,
+            'invoice_total' => 4560,
+            'total_amount' => 4560,
         ]);
 
         $this->actingAs($user)

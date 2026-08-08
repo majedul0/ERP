@@ -1,13 +1,12 @@
 /**
  * Display formatters for the company surface.
  *
- * Amounts are grouped but never rounded up: `13500` renders as `13,500`, and
- * `4560.25` as `4,560.25`.
+ * Money is whole numbers throughout — see App\Support\Money — so amounts are
+ * grouped but never given a decimal part: `13500` renders as `13,500`.
  */
 
 const amountFormatter = new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 0,
 });
 
 export function formatAmount(amount: number): string {

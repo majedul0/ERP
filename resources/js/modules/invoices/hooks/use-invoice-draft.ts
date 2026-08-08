@@ -18,10 +18,18 @@ function blankLine(): InvoiceLineDraft {
     };
 }
 
-function toNumber(value: string): number {
+/**
+ * Read a form field as a whole number.
+ *
+ * Money and quantities are integers everywhere — see App\Support\Money — so a
+ * `90.5` typed into a price is truncated here rather than travelling to the
+ * server as a fraction. The server's `integer` validation rejects one that
+ * arrives another way.
+ */
+export function toWholeAmount(value: string): number {
     const parsed = Number.parseFloat(value);
 
-    return Number.isFinite(parsed) ? parsed : 0;
+    return Number.isFinite(parsed) ? Math.trunc(parsed) : 0;
 }
 
 export type InvoiceLineView = InvoiceLineDraft & {
@@ -91,7 +99,7 @@ export function useInvoiceDraft(
 
                     if (product) {
                         updated.totalQuantity = String(
-                            toNumber(changes.cartonQuantity) *
+                            toWholeAmount(changes.cartonQuantity) *
                                 product.cartonSize,
                         );
                     }
@@ -103,15 +111,18 @@ export function useInvoiceDraft(
 
     const views: InvoiceLineView[] = lines.map((line) => {
         const product = productsById.get(line.productId ?? -1) ?? null;
-        const quantity = toNumber(line.totalQuantity);
+        const quantity = toWholeAmount(line.totalQuantity);
         const requested = lines
             .filter((other) => other.productId === line.productId)
-            .reduce((sum, other) => sum + toNumber(other.totalQuantity), 0);
+            .reduce(
+                (sum, other) => sum + toWholeAmount(other.totalQuantity),
+                0,
+            );
 
         return {
             ...line,
             product,
-            amount: quantity * toNumber(line.unitPrice),
+            amount: quantity * toWholeAmount(line.unitPrice),
             stockWarning:
                 product && requested > product.stockQuantity
                     ? `Only ${product.stockQuantity} in stock`
@@ -121,7 +132,7 @@ export function useInvoiceDraft(
 
     const invoiceTotal = views.reduce((sum, line) => sum + line.amount, 0);
     const discountTotal = views.reduce(
-        (sum, line) => sum + toNumber(line.discount),
+        (sum, line) => sum + toWholeAmount(line.discount),
         0,
     );
     const previousDues = distributor?.balance ?? 0;
@@ -145,14 +156,15 @@ export function useInvoiceDraft(
         payloadItems: views
             .filter(
                 (line) =>
-                    line.productId !== null && toNumber(line.totalQuantity) > 0,
+                    line.productId !== null &&
+                    toWholeAmount(line.totalQuantity) > 0,
             )
             .map((line) => ({
                 product_id: line.productId,
-                carton_quantity: Math.trunc(toNumber(line.cartonQuantity)),
-                total_quantity: Math.trunc(toNumber(line.totalQuantity)),
-                unit_price: toNumber(line.unitPrice),
-                discount: toNumber(line.discount),
+                carton_quantity: toWholeAmount(line.cartonQuantity),
+                total_quantity: toWholeAmount(line.totalQuantity),
+                unit_price: toWholeAmount(line.unitPrice),
+                discount: toWholeAmount(line.discount),
                 remarks: line.remarks || null,
             })),
     };

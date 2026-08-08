@@ -11,6 +11,7 @@ import {
     InvoiceField,
     InvoiceLineRows,
     InvoiceTotals,
+    toWholeAmount,
     useInvoiceDraft,
 } from '@/modules/invoices';
 import type { InvoiceProductOption } from '@/modules/products';
@@ -47,7 +48,7 @@ export default function CreateInvoice({
     const [processing, setProcessing] = useState(false);
 
     const draft = useInvoiceDraft(products, distributors);
-    const scheme = Number.parseFloat(schemeAmount) || 0;
+    const scheme = toWholeAmount(schemeAmount);
 
     const submit = () => {
         setProcessing(true);
@@ -157,7 +158,7 @@ export default function CreateInvoice({
                             id="scheme_amount"
                             type="number"
                             min={0}
-                            step="0.01"
+                            step={1}
                             value={schemeAmount}
                             onChange={(event) =>
                                 setSchemeAmount(event.target.value)

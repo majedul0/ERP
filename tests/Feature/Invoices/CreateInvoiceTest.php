@@ -37,7 +37,7 @@ class CreateInvoiceTest extends TestCase
     {
         return Product::factory()->create([
             'team_id' => $this->team->id,
-            'distributor_price' => 9000,
+            'distributor_price' => 90,
             'stock_quantity' => 100,
             'carton_size' => 12,
             ...$attributes,
@@ -56,8 +56,8 @@ class CreateInvoiceTest extends TestCase
 
     public function test_an_invoice_is_written_with_its_lines_and_totals()
     {
-        $first = $this->product(['distributor_price' => 9000]);
-        $second = $this->product(['distributor_price' => 10000]);
+        $first = $this->product(['distributor_price' => 90]);
+        $second = $this->product(['distributor_price' => 100]);
 
         $response = $this->actingAs($this->user)->post(
             route('invoices.store', ['current_team' => $this->team->slug]),
@@ -74,9 +74,9 @@ class CreateInvoiceTest extends TestCase
             'invoice' => $invoice->id,
         ]));
 
-        // 12 x 90 + 24 x 100 = 3480.00, stored as minor units.
-        $this->assertSame(348000, $invoice->invoice_total);
-        $this->assertSame(348000, $invoice->total_amount);
+        // 12 x 90 + 24 x 100 = 3480, whole units end to end.
+        $this->assertSame(3480, $invoice->invoice_total);
+        $this->assertSame(3480, $invoice->total_amount);
         $this->assertSame(0, $invoice->previous_dues);
         $this->assertCount(2, $invoice->items);
         $this->assertSame(DeliveryStatus::Pending, $invoice->delivery_status);
@@ -98,7 +98,7 @@ class CreateInvoiceTest extends TestCase
 
     public function test_the_server_prices_the_line_and_ignores_the_amount_the_browser_sent()
     {
-        $product = $this->product(['distributor_price' => 9000]);
+        $product = $this->product(['distributor_price' => 90]);
 
         $this->actingAs($this->user)->post(
             route('invoices.store', ['current_team' => $this->team->slug]),
@@ -114,7 +114,7 @@ class CreateInvoiceTest extends TestCase
             ]),
         );
 
-        $this->assertSame(90000, Invoice::firstOrFail()->items->first()->amount);
+        $this->assertSame(900, Invoice::firstOrFail()->items->first()->amount);
     }
 
     public function test_an_invoice_cannot_sell_more_than_is_in_stock()
@@ -171,14 +171,14 @@ class CreateInvoiceTest extends TestCase
 
     public function test_previous_dues_carry_forward_onto_the_next_invoice()
     {
-        $product = $this->product(['stock_quantity' => 100, 'distributor_price' => 10000]);
+        $product = $this->product(['stock_quantity' => 100, 'distributor_price' => 100]);
         $url = route('invoices.store', ['current_team' => $this->team->slug]);
 
         $this->actingAs($this->user)->post($url, $this->payload([
             ['product_id' => $product->id, 'total_quantity' => 10, 'unit_price' => 100],
         ]));
 
-        $this->assertSame(100000, $this->distributor->fresh()->balance);
+        $this->assertSame(1000, $this->distributor->fresh()->balance);
 
         $this->actingAs($this->user)->post($url, $this->payload([
             ['product_id' => $product->id, 'total_quantity' => 5, 'unit_price' => 100],
@@ -186,10 +186,10 @@ class CreateInvoiceTest extends TestCase
 
         $second = Invoice::latest('id')->firstOrFail();
 
-        $this->assertSame(100000, $second->previous_dues);
-        $this->assertSame(50000, $second->invoice_total);
-        $this->assertSame(150000, $second->total_amount);
-        $this->assertSame(150000, $this->distributor->fresh()->balance);
+        $this->assertSame(1000, $second->previous_dues);
+        $this->assertSame(500, $second->invoice_total);
+        $this->assertSame(1500, $second->total_amount);
+        $this->assertSame(1500, $this->distributor->fresh()->balance);
     }
 
     public function test_discounts_and_scheme_amounts_come_off_the_total()
@@ -211,15 +211,15 @@ class CreateInvoiceTest extends TestCase
 
         $invoice = Invoice::firstOrFail();
 
-        $this->assertSame(100000, $invoice->invoice_total);
-        $this->assertSame(5000, $invoice->discount_total);
-        $this->assertSame(2500, $invoice->scheme_amount);
-        $this->assertSame(92500, $invoice->total_amount);
+        $this->assertSame(1000, $invoice->invoice_total);
+        $this->assertSame(50, $invoice->discount_total);
+        $this->assertSame(25, $invoice->scheme_amount);
+        $this->assertSame(925, $invoice->total_amount);
     }
 
     public function test_a_line_falls_back_to_the_product_price_when_none_is_given()
     {
-        $product = $this->product(['distributor_price' => 12345]);
+        $product = $this->product(['distributor_price' => 123]);
 
         $this->actingAs($this->user)->post(
             route('invoices.store', ['current_team' => $this->team->slug]),
@@ -228,7 +228,7 @@ class CreateInvoiceTest extends TestCase
             ]),
         );
 
-        $this->assertSame(12345, Invoice::firstOrFail()->items->first()->unit_price);
+        $this->assertSame(123, Invoice::firstOrFail()->items->first()->unit_price);
     }
 
     public function test_line_items_keep_the_name_the_product_had_when_it_sold()

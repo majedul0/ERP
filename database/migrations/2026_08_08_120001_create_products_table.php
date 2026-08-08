@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('sku');
             $table->unsignedInteger('carton_size')->default(1);
 
-            // Prices in minor units (e.g. poisha), never floats.
+            // Whole currency units. No fractions anywhere: see App\Support\Money.
             $table->bigInteger('distributor_price')->default(0);
             $table->bigInteger('trade_price')->default(0);
             $table->bigInteger('mrp')->default(0);

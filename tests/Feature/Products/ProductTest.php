@@ -67,20 +67,30 @@ class ProductTest extends TestCase
         $this->assertSame(500, $product->stock_quantity);
     }
 
-    public function test_prices_are_stored_as_exact_minor_units()
+    public function test_prices_are_stored_as_whole_integers()
     {
         $this->store([
-            'distributor_price' => 90.55,
-            'trade_price' => 95.05,
-            'mrp' => 110.99,
+            'distributor_price' => 90,
+            'trade_price' => 95,
+            'mrp' => 110,
         ]);
 
         $product = Product::firstOrFail();
 
         // Integers, so a hundred lines of these still add up exactly.
-        $this->assertSame(9055, $product->distributor_price);
-        $this->assertSame(9505, $product->trade_price);
-        $this->assertSame(11099, $product->mrp);
+        $this->assertSame(90, $product->distributor_price);
+        $this->assertSame(95, $product->trade_price);
+        $this->assertSame(110, $product->mrp);
+    }
+
+    public function test_a_fractional_price_is_rejected_rather_than_rounded()
+    {
+        $this->store(['distributor_price' => 90.55])
+            ->assertSessionHasErrors([
+                'distributor_price' => 'Prices must be whole amounts, with no decimals.',
+            ]);
+
+        $this->assertSame(0, Product::count());
     }
 
     public function test_a_photo_is_stored_under_the_company_and_named_for_the_sku()

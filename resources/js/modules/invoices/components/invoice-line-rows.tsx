@@ -123,7 +123,7 @@ export default function InvoiceLineRows({
                                 <Input
                                     type="number"
                                     min={0}
-                                    step="0.01"
+                                    step={1}
                                     className="w-32"
                                     value={line.unitPrice}
                                     onChange={(event) =>
@@ -144,7 +144,7 @@ export default function InvoiceLineRows({
                                 <Input
                                     type="number"
                                     min={0}
-                                    step="0.01"
+                                    step={1}
                                     className="w-28"
                                     value={line.discount}
                                     onChange={(event) =>

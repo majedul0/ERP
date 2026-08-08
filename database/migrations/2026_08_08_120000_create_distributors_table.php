@@ -20,9 +20,9 @@ return new class extends Migration
             $table->string('division')->nullable();
 
             /*
-             * What the distributor currently owes, in minor units, maintained
-             * by invoice and payment writes. Integers because money in floats
-             * drifts; see App\Support\Money.
+             * What the distributor currently owes, in whole currency units,
+             * maintained by invoice and payment writes. Integers because money
+             * in floats drifts; see App\Support\Money.
              */
             $table->bigInteger('balance')->default(0);
 

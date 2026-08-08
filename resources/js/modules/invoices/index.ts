@@ -7,6 +7,6 @@ export { default as DistributorSummary } from './components/distributor-summary'
 export { default as InvoiceField } from './components/invoice-field';
 export { default as InvoiceLineRows } from './components/invoice-line-rows';
 export { default as InvoiceTotals } from './components/invoice-totals';
-export { useInvoiceDraft } from './hooks/use-invoice-draft';
+export { toWholeAmount, useInvoiceDraft } from './hooks/use-invoice-draft';
 export type { InvoiceLineView } from './hooks/use-invoice-draft';
 export type * from './types';
