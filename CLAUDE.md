@@ -142,9 +142,11 @@ is no `where('team_id', ...)` to forget.
 
 Two rules hold the books together; break either and the numbers stop reconciling:
 
-- **Money is integer minor units** (`App\Support\Money`), never floats or decimals. Columns
-  are `bigInteger`. Convert at the HTTP boundary only — `Money::fromInput()` in,
-  `Money::toDecimal()` out.
+- **Money is whole integers** — no floats, no decimals, no minor units. Columns are
+  `bigInteger` holding whole currency units, form requests validate `integer` (not `numeric`)
+  so a fractional price is rejected rather than rounded, and props go to React as ints. There
+  is no conversion step in either direction; `App\Support\Money::fromInput()` exists only to
+  coerce anything that reaches the domain by another route.
 - **The server recomputes every amount** in `CreateInvoice` from the locked product rows. The
   browser's totals are for the person filling the form and are never read back, so a stale
   price or a hand-edited request cannot decide what an invoice is worth.
