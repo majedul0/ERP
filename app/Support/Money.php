@@ -3,54 +3,39 @@
 namespace App\Support;
 
 /**
- * Conversion between the decimal amounts people type and the integer minor
- * units the database stores.
+ * The boundary where money entering the application becomes an integer.
  *
- * Every money column is a bigint of minor units (poisha for BDT). Floats are
- * not exact in binary — 0.1 + 0.2 is famously not 0.3 — and an invoicing
- * ledger that drifts by a fraction per line is worse than useless. Integers
- * add up exactly, so totals reconcile no matter how many lines an invoice has.
+ * Every money column is a `bigInteger` of whole currency units — taka, not
+ * poisha — and there are no fractions anywhere in the system. Amounts are
+ * whole on the way in, whole in the database, and whole on the way out, so a
+ * total is the plain sum of its lines with nothing to round.
+ *
+ * Validation rejects fractional input before it reaches here; this is the
+ * second line of defence for anything that arrives another way.
  */
 final class Money
 {
     /**
-     * Minor units per major unit. 100 poisha to the taka.
-     */
-    public const SCALE = 100;
-
-    /**
-     * Parse user or API input into minor units.
+     * Coerce input to a whole amount.
      *
-     * Rounds half-up at the minor unit, so `90.005` becomes 9001 rather than
-     * being truncated. Anything unparseable is 0 — validation, not this, is
-     * responsible for rejecting bad input.
+     * Rounds half-up rather than truncating, so a `90.6` that slipped past
+     * validation becomes 91 and not 90 — closer to what was meant, and it can
+     * never quietly shave value off an invoice.
      */
     public static function fromInput(mixed $value): int
     {
-        if ($value === null || $value === '') {
+        if ($value === null || $value === '' || ! is_numeric($value)) {
             return 0;
         }
 
-        if (is_int($value)) {
-            return $value * self::SCALE;
-        }
-
-        return (int) round(((float) $value) * self::SCALE);
+        return (int) round((float) $value);
     }
 
     /**
-     * Render minor units as a decimal number for display or JSON.
+     * Multiply an amount by a quantity. Both whole, so the result is exact.
      */
-    public static function toDecimal(int $minor): float
+    public static function multiply(int $amount, int $quantity): int
     {
-        return round($minor / self::SCALE, 2);
-    }
-
-    /**
-     * Multiply an amount by a whole quantity, staying in minor units.
-     */
-    public static function multiply(int $minor, int $quantity): int
-    {
-        return $minor * $quantity;
+        return $amount * $quantity;
     }
 }
