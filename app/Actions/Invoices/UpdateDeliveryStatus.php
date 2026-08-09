@@ -3,20 +3,27 @@
 namespace App\Actions\Invoices;
 
 use App\Enums\DeliveryStatus;
+use App\Models\Distributor;
 use App\Models\Invoice;
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 
 class UpdateDeliveryStatus
 {
+    public function __construct(
+        private readonly RecalculateDistributorBalance $recalculateBalance,
+    ) {}
+
     /**
-     * Move an invoice to a new delivery status, returning stock to the shelf
-     * when it stops being a sale and taking it back when it becomes one again.
+     * Move an invoice to a new delivery status.
      *
-     * Two people pressing "Delivered" at once must not double-move stock, so
+     * Going void returns the stock to the shelf and clears the debt; coming
+     * back to life takes both again. Those two move together — see
+     * DeliveryStatus::isLive() — so one check drives both.
+     *
+     * Two people pressing "Delivered" at once must not move stock twice, so
      * the invoice row is locked and the status re-read inside the transaction:
-     * the second request sees the status the first one committed and does
-     * nothing.
+     * the second request sees what the first committed and does nothing.
      */
     public function handle(Invoice $invoice, DeliveryStatus $status): Invoice
     {
@@ -28,13 +35,21 @@ class UpdateDeliveryStatus
                 return $invoice;
             }
 
-            if ($previous->holdsStock() !== $status->holdsStock()) {
-                $this->moveStock($invoice, returning: ! $status->holdsStock());
+            $distributor = Distributor::whereKey($invoice->distributor_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($previous->isLive() !== $status->isLive()) {
+                $this->moveStock($invoice, returning: ! $status->isLive());
             }
 
             $invoice->update(['delivery_status' => $status]);
 
-            return $invoice;
+            // A voided sale is no longer owed, so every later invoice for this
+            // distributor carries forward a different figure.
+            $this->recalculateBalance->handle($distributor);
+
+            return $invoice->refresh();
         });
     }
 
@@ -61,9 +76,12 @@ class UpdateDeliveryStatus
                 continue;
             }
 
-            $returning
-                ? $product->increment('stock_quantity', $item->total_quantity)
-                : $product->decrement('stock_quantity', $item->total_quantity);
+            // Explicit, not increment()/decrement() — see CreateInvoice.
+            $product->update([
+                'stock_quantity' => $returning
+                    ? $product->stock_quantity + $item->total_quantity
+                    : $product->stock_quantity - $item->total_quantity,
+            ]);
         }
     }
 }
