@@ -162,8 +162,55 @@ Concurrency, because several staff at one company sell at the same time:
   distributor, so concurrent invoices queue rather than deadlock. Quantities are summed per
   product before the check: the same product on two lines must fit *together*.
 - **Delivery status** — `UpdateDeliveryStatus` re-reads the status under the lock, so two
-  people pressing the same button move stock once. `DeliveryStatus::holdsStock()` decides
-  which transitions return stock to the shelf.
+  people pressing the same button move stock once. `DeliveryStatus::isLive()` is the single
+  question behind both stock and money: a void invoice (cancelled/returned) holds neither.
+
+The running account is the other invariant. A distributor's ledger is invoices (charges) and
+payments (credits) interleaved — `App\Support\DistributorLedger`, ordered by document date,
+then invoices before payments on a shared day, then id. That single walk does two jobs: the
+statement screen renders it, and `RecalculateDistributorBalance` writes it back onto each
+invoice's `previous_dues`/`total_amount` and onto `distributors.balance`. They cannot
+disagree, because they are the same code.
+
+Each invoice storing the balance before and after it makes it a statement you can hand over —
+and means **any change invalidates every later line for that distributor**. So editing an
+invoice, voiding one, or recording a payment never patches a row: it replays the account.
+`UpdateInvoice` returns the old stock before checking the new quantities, so an edit is
+measured against stock that already includes what it was holding, and it replays both ledgers
+when an invoice moves between distributors. Invoice numbers never change on edit — they are on
+documents already printed.
+
+Payments are against the account, not against one invoice, which is how the trade settles. The
+note printed beside an invoice's totals is derived: the payments received after that invoice
+and before the next one to the same distributor.
+
+**Previous Dues is editable on the invoice form.** A figure typed there is stored in
+`invoices.previous_dues_override` and the replay restarts the account from it; leaving the
+field alone stores null, so the invoice keeps following the account. Nothing is deleted — the
+gap between what the account said and what was typed becomes its own `adjustment` line in the
+ledger, so the statement still adds up top to bottom. `UpdateInvoice` clears the override,
+replays, and re-applies it only if the submitted figure still differs, which is how an
+override gets removed.
+
+Products are editable (`UpdateProduct`). Repricing only affects future invoices: invoice items
+copy name, SKU and unit price at the moment of sale, and stock entered on the form is an
+absolute recount, not a delta.
+
+**Stock writes are explicit `update()` calls, never `increment()`/`decrement()`.** Those two
+sync the model's original attributes, so a `saved` listener cannot tell that stock moved — and
+that listener is what keeps other people's open invoice forms current. The rows are locked
+`FOR UPDATE` first, so read-then-write cannot lose an update.
+
+Live stock uses `App\Support\StockVersion`: a per-company Redis counter bumped (after commit)
+whenever a product's stock changes. An open invoice form asks `sales/stock-version` for that
+number when a line is added, on tab focus, and on a 20s timer — one Redis read, no database —
+and only refetches products with a partial Inertia reload when it has moved. The database
+stays the only authority: `CreateInvoice` re-checks stock under a row lock whatever the
+browser was last told.
+
+The challan has no stored form: `InvoicePresenter::challan()` renders it from the invoice on
+request, so an edited invoice yields an updated challan with nothing to regenerate. It
+deliberately omits every priced field, including the distributor's balance.
 
 Verified out-of-band against real Postgres and Redis, not just the sqlite test suite: 20
 concurrent processes against 10 units of stock produced exactly 10 invoices, 10 distinct
