@@ -1,7 +1,10 @@
 # Deployment Runbook
 
-**Target:** Hostinger VPS `72.61.248.244`, CyberPanel/OpenLiteSpeed, domain `app.galaxyconsumer.com`
-**Registry:** `ghcr.io/majedul0/erp` (public — the VPS pulls without credentials)
+**Target:** Hostinger VPS behind CyberPanel/OpenLiteSpeed
+**Registry:** `ghcr.io/majedul0/erp`
+
+> This repository is public. The server's address, and every credential, live in
+> GitHub Actions secrets and in `.env` on the box — never here.
 
 ---
 
@@ -82,7 +85,7 @@ changed: it decrypts existing sessions, cookies and any encrypted column.
 
 ## 4. One-time: CyberPanel
 
-1. **Websites → Create Website** for `app.galaxyconsumer.com`.
+1. **Websites → Create Website** for the app's domain.
 2. **Manage → vHost Conf**, add:
 
    ```
@@ -107,14 +110,14 @@ changed: it decrypts existing sessions, cookies and any encrypted column.
 3. **Server Status → OpenLiteSpeed → Graceful Restart** (not a hard restart —
    other sites stay up).
 4. **Manage → SSL → Issue SSL** (Let's Encrypt).
-5. DNS: `app.galaxyconsumer.com` A record → `72.61.248.244`.
+5. DNS: the app's A record → the VPS IP.
 
 Verify:
 
 ```bash
 curl -I http://127.0.0.1:8080/up        # on the box  → 200
-curl -I https://app.galaxyconsumer.com  # outside     → 200 over TLS
-curl -I http://72.61.248.244:8080       # outside     → must FAIL
+curl -I https://<your-domain>           # outside     → 200 over TLS
+curl -I http://<vps-ip>:8080            # outside     → must FAIL
 ```
 
 That last one failing is the point: the app is only reachable through
@@ -128,7 +131,7 @@ Repo → Settings → Secrets and variables → Actions:
 
 | Secret | Value |
 |---|---|
-| `VPS_HOST` | `72.61.248.244` |
+| `VPS_HOST` | the VPS IP or hostname |
 | `VPS_USER` | `deploy` |
 | `VPS_SSH_KEY` | the **private** half of the deploy key, whole file including header/footer |
 | `VPS_PORT` | only if SSH is not on 22 |
@@ -183,7 +186,7 @@ docker compose exec -T postgres pg_dump -U erp erp | gzip > backup-$(date +%F).s
 docker run --rm -v erp_storage:/s -v "$PWD":/b alpine tar czf /b/storage-$(date +%F).tar.gz -C /s .
 ```
 
-Horizon dashboard: `https://app.galaxyconsumer.com/horizon`, restricted to the
+Horizon dashboard: `https://<your-domain>/horizon`, restricted to the
 addresses in `HORIZON_ALLOWED_EMAILS`. Empty means nobody.
 
 ---

@@ -16,6 +16,19 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        /*
+         * In production the app sits behind OpenLiteSpeed, which terminates TLS
+         * and forwards plain HTTP to the container. Without this, Laravel sees
+         * an insecure request: `$request->isSecure()` is false, secure cookies
+         * are never set, and any URL not built from APP_URL comes out as http://.
+         *
+         * Trusting every proxy is safe *here* because nothing can reach the
+         * container except through that reverse proxy — the only published port
+         * is bound to 127.0.0.1. Publish the app port publicly and this becomes
+         * a header-spoofing hole.
+         */
+        $middleware->trustProxies(at: '*');
+
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [
