@@ -1,7 +1,6 @@
 import { createInertiaApp } from '@inertiajs/react';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -41,5 +40,6 @@ createInertiaApp({
     },
 });
 
-// This will set light / dark mode on load...
-//initializeTheme();
+// Dark mode is deliberately off: the company surface is designed light-only,
+// and the ocean palette has no dark variant. To turn it back on, import
+// `initializeTheme` from '@/hooks/use-appearance' and call it here.
