@@ -1,212 +1,92 @@
-# Deployment Runbook — Laravel + Inertia/React + Postgres + Redis + Horizon
-### Target: Hostinger VPS (CyberPanel / OpenLiteSpeed) via Docker + GitHub Actions
+# Deployment Runbook
+
+**Target:** Hostinger VPS `72.61.248.244`, CyberPanel/OpenLiteSpeed, domain `app.galaxyconsumer.com`
+**Registry:** `ghcr.io/majedul0/erp` (public — the VPS pulls without credentials)
 
 ---
 
-## 0. Overview
+## 1. How it works
 
 ```
-Push to main (GitHub)
-   -> CI: run tests
-   -> CI: build Docker image, push to GHCR
-   -> CD: SSH into VPS, pull image, run migrations, restart containers
-   -> CyberPanel/OpenLiteSpeed proxies the public domain to the container over localhost
+push to main
+  └─ .github/workflows/deploy.yml
+       ├─ test    composer ci:check  (pint, phpstan, eslint, prettier, tsc, phpunit)
+       ├─ build   docker build → ghcr.io/majedul0/erp:{latest,<sha>}
+       └─ deploy  ssh → pull, migrate, up -d, restart workers, health check
 ```
 
-Docker never touches ports 80/443 — CyberPanel owns those. Docker's internal nginx
-listens on `127.0.0.1:8080` only, and CyberPanel reverse-proxies to it.
+On the box:
+
+```
+internet :443
+  └─ OpenLiteSpeed (CyberPanel — owns 80/443, terminates TLS)
+       └─ proxy → 127.0.0.1:8080
+            └─ docker compose (project "erp")
+                 ├─ app        nginx + php-fpm      → publishes 127.0.0.1:8080
+                 ├─ horizon    php artisan horizon
+                 ├─ scheduler  php artisan schedule:work
+                 ├─ postgres   (private network only)
+                 └─ redis      (private network only)
+```
+
+Only `app` publishes a port, and only to loopback. Postgres and Redis are
+reachable solely from inside the compose network — never from the internet.
 
 ---
 
-## 1. One-time: containerize the app
+## 2. Files
 
-**`Dockerfile`** (repo root):
+| File | Lives | Purpose |
+|---|---|---|
+| `Dockerfile` | repo | Two stages: build assets, then the runtime image |
+| `.dockerignore` | repo | Keeps `.env`, `node_modules`, `vendor`, `.git` out of the image |
+| `docker/nginx.conf` | repo → image | Server block, static caching, upload limit |
+| `docker/supervisord.conf` | repo → image | Runs nginx and php-fpm, restarts either if it dies |
+| `docker/php.ini` | repo → image | opcache, upload limits, errors to stderr |
+| `docker/php-fpm.conf` | repo → image | Pool sizing, worker recycling, log passthrough |
+| `docker/entrypoint.sh` | repo → image | Rebuilds storage dirs, links storage, caches config |
+| `deploy/docker-compose.yml` | **copy to VPS** | The five services |
+| `deploy/.env.example` | **copy to VPS as `.env`** | Production configuration and secrets |
+| `deploy/provision.sh` | run once on VPS | Docker, deploy user, firewall |
 
-```dockerfile
-# --- Stage 1: build frontend assets ---
-FROM node:20-alpine AS frontend
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-# --- Stage 2: install PHP deps ---
-FROM composer:2 AS vendor
-WORKDIR /app
-COPY database/ database/
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
-
-# --- Stage 3: final runtime image ---
-FROM php:8.3-fpm-alpine
-RUN apk add --no-cache postgresql-dev libzip-dev zip icu-dev oniguruma-dev \
-    && docker-php-ext-install pdo pdo_pgsql bcmath zip intl opcache pcntl
-
-WORKDIR /var/www/html
-COPY . .
-COPY --from=vendor /app/vendor ./vendor
-COPY --from=frontend /app/public/build ./public/build
-
-RUN composer dump-autoload --optimize \
-    && php artisan config:cache \
-    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-
-EXPOSE 9000
-CMD ["php-fpm"]
-```
-
-`pcntl` is required for Horizon's signal handling — don't drop it.
-
-**`nginx.conf`** (repo root, used only inside Docker — HTTP only, no SSL here):
-
-```nginx
-server {
-    listen 80;
-    server_name _;
-
-    root /var/www/html/public;
-    index index.php;
-
-    client_max_body_size 20M;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        fastcgi_pass app:9000;
-        fastcgi_index index.php;
-        include fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-    }
-
-    location ~ /\.(?!well-known).* {
-        deny all;
-    }
-
-    location ~* \.(js|css|png|jpg|jpeg|gif|svg|woff2?)$ {
-        expires 30d;
-        access_log off;
-    }
-}
-```
-
-Add both files to git. Add `.env`, `vendor/`, `node_modules/`, `public/build/` to `.gitignore`
-if not already there (build artifacts are produced in CI, not committed).
+`deploy/*` is committed for review but **CI never writes it to the server** —
+the `.env` beside it holds every production secret and must not be overwritten
+by a deploy.
 
 ---
 
-## 2. One-time: prep the Hostinger VPS
+## 3. One-time: the VPS
 
-1. SSH in as root (or sudo user).
-2. Install Docker + Compose plugin:
-   ```bash
-   curl -fsSL https://get.docker.com | sh
-   ```
-3. Create a dedicated deploy user, add to `docker` group:
-   ```bash
-   adduser deploy
-   usermod -aG docker deploy
-   ```
-4. Generate a CI-only SSH keypair (on your local machine, not the VPS):
-   ```bash
-   ssh-keygen -t ed25519 -f deploy_key -C "github-actions-deploy"
-   ```
-   - Put `deploy_key.pub` into `/home/deploy/.ssh/authorized_keys` on the VPS.
-   - Keep `deploy_key` (private) for GitHub Secrets — never commit it.
-5. Create the deploy directory:
-   ```bash
-   mkdir -p /home/deploy/app && cd /home/deploy/app
-   ```
-6. Put `docker-compose.yml` (below) and a real `.env` here. This directory is the
-   persistent home for everything that isn't rebuilt by CI.
-7. Generate `APP_KEY` **once**, locally:
-   ```bash
-   php artisan key:generate --show
-   ```
-   Paste the value into the VPS `.env`. Never regenerate on later deploys — it
-   invalidates sessions/cookies and encrypted DB fields.
-
----
-
-## 3. `docker-compose.yml` (lives permanently on the VPS)
-
-```yaml
-services:
-  app:
-    image: ghcr.io/yourname/yourapp:latest
-    restart: unless-stopped
-    env_file: .env
-    depends_on: [postgres, redis]
-    volumes:
-      - storage:/var/www/html/storage
-
-  horizon:
-    image: ghcr.io/yourname/yourapp:latest
-    command: php artisan horizon
-    restart: unless-stopped
-    stop_grace_period: 30s
-    env_file: .env
-    depends_on: [postgres, redis]
-    volumes:
-      - storage:/var/www/html/storage
-
-  nginx:
-    image: nginx:alpine
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:8080:80"   # localhost only — CyberPanel proxies to this
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on: [app]
-
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    env_file: .env
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    volumes:
-      - redisdata:/data
-
-volumes:
-  pgdata:
-  redisdata:
-  storage:
-```
-
-Boot it once manually to confirm everything comes up before wiring CI:
 ```bash
-docker compose up -d
-docker compose ps
-curl -I http://127.0.0.1:8080
+# as root
+bash provision.sh "ssh-ed25519 AAAA... github-actions-deploy@erp"
 ```
 
-**`.env` essentials on the VPS:**
+Installs Docker, creates `deploy` (in the `docker` group, key-only), creates
+`/home/deploy/app`, and closes everything except 22, 80, 443 and 8090.
+
+Then, as `deploy`:
+
+```bash
+cd /home/deploy/app
+# place docker-compose.yml and .env here
+chmod 600 .env
+docker compose up -d
+curl -I http://127.0.0.1:8080/up      # expect 200
 ```
-QUEUE_CONNECTION=redis
-SESSION_DRIVER=redis
-CACHE_STORE=redis
-DB_CONNECTION=pgsql
-DB_HOST=postgres
-DB_PORT=5432
-REDIS_HOST=redis
-APP_URL=https://yourdomain.com
-```
+
+`APP_KEY` is generated **once** (`php artisan key:generate --show`) and never
+changed: it decrypts existing sessions, cookies and any encrypted column.
 
 ---
 
-## 4. CyberPanel: point the domain at the container
+## 4. One-time: CyberPanel
 
-1. **Websites → Create Website** — create the domain/subdomain this app owns.
-2. **Websites → List Websites → Manage → [domain] → vHost Conf** — add:
+1. **Websites → Create Website** for `app.galaxyconsumer.com`.
+2. **Manage → vHost Conf**, add:
+
    ```
-   extprocessor dockerapp {
+   extprocessor erpapp {
      type                    proxy
      address                 127.0.0.1:8080
      maxConns                100
@@ -218,152 +98,121 @@ APP_URL=https://yourdomain.com
 
    context / {
      type                    proxy
-     handler                 dockerapp
+     handler                 erpapp
      addDefaultCharset       off
    }
    ```
-   If other Dockerized sites exist on this box, rename `dockerapp` uniquely per
-   site (e.g. `dockerapp_appname`) and give each its own local port (8080, 8081...).
-3. **Server Status → OpenLiteSpeed → Graceful Restart** (not a hard restart —
-   other sites on the box stay up).
-4. **Websites → List Websites → Manage → [domain] → SSL → Issue SSL** (AutoSSL/Let's Encrypt).
-5. Verify:
-   ```bash
-   curl -I http://127.0.0.1:8080          # from inside the VPS — should hit Laravel
-   curl -I https://yourdomain.com         # from outside — should hit the same, over TLS
-   ```
-6. Confirm port 8080 isn't reachable from the public internet directly:
-   ```bash
-   curl -I http://<vps-public-ip>:8080    # should fail/timeout
-   ```
 
-DNS: A records for `@` and `www` → VPS IP, set in whichever panel manages this
-domain's DNS zone. Allow up to ~24h to propagate.
+   One `extprocessor` name and one local port per Dockerised site on this box.
+3. **Server Status → OpenLiteSpeed → Graceful Restart** (not a hard restart —
+   other sites stay up).
+4. **Manage → SSL → Issue SSL** (Let's Encrypt).
+5. DNS: `app.galaxyconsumer.com` A record → `72.61.248.244`.
+
+Verify:
+
+```bash
+curl -I http://127.0.0.1:8080/up        # on the box  → 200
+curl -I https://app.galaxyconsumer.com  # outside     → 200 over TLS
+curl -I http://72.61.248.244:8080       # outside     → must FAIL
+```
+
+That last one failing is the point: the app is only reachable through
+CyberPanel, so TLS can never be bypassed.
 
 ---
 
-## 5. GitHub: secrets
+## 5. One-time: GitHub secrets
 
-Repo → Settings → Secrets and variables → Actions → add:
+Repo → Settings → Secrets and variables → Actions:
 
 | Secret | Value |
 |---|---|
-| `VPS_HOST` | VPS IP or hostname |
+| `VPS_HOST` | `72.61.248.244` |
 | `VPS_USER` | `deploy` |
-| `VPS_SSH_KEY` | contents of the private `deploy_key` from step 2 |
+| `VPS_SSH_KEY` | the **private** half of the deploy key, whole file including header/footer |
+| `VPS_PORT` | only if SSH is not on 22 |
 
-`GITHUB_TOKEN` for GHCR auth is provided automatically — no setup needed.
+`GITHUB_TOKEN` for GHCR is provided automatically.
 
 ---
 
-## 6. `.github/workflows/deploy.yml`
+## 6. Deploying
 
-```yaml
-name: Build and Deploy
+Push to `main`. To re-run without a commit: Actions → deploy → Run workflow.
 
-on:
-  push:
-    branches: [main]
+The deploy step, in order, and why:
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_PASSWORD: secret
-          POSTGRES_DB: testing
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-      - run: composer install --prefer-dist --no-progress
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm ci && npm run build
-      - run: cp .env.testing .env
-      - run: php artisan key:generate
-      - run: php artisan test
+1. `docker compose pull app` — fetch the new image.
+2. `docker compose run --rm --no-deps app php artisan migrate --force` — a
+   one-off container on the **new** image, before anything is swapped. If a
+   migration fails the deploy stops and the old release keeps serving.
+3. `docker compose up -d --remove-orphans` — swap the containers.
+4. `docker compose restart horizon scheduler` — PHP workers cache class
+   definitions per process, so new job code needs a fresh worker.
+5. Poll `/up` for 15s — a deploy that does not serve is a failed deploy, and
+   the job prints the app logs before exiting non-zero.
 
-  build-and-push:
-    needs: test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ghcr.io/${{ github.repository }}:latest
+`concurrency: cancel-in-progress: false` — a run cancelled between steps 2 and
+3 would leave new schema against old code.
 
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            cd /home/deploy/app
-            docker compose pull
-            docker compose run --rm app php artisan migrate --force
-            docker compose up -d
-            docker compose exec app php artisan config:cache
-            docker compose exec app php artisan route:cache
-            docker compose exec app php artisan view:cache
-            docker compose restart horizon
-            docker image prune -f
+### Rolling back
+
+```bash
+cd /home/deploy/app
+APP_IMAGE_TAG=<older-sha> docker compose up -d
 ```
 
-Why each piece is ordered this way:
-- `migrate --force` runs as a one-off container **before** `up -d` swaps the
-  running containers.
-- Config/route/view caching runs **after** `up -d`, against the live container,
-  since `.env` values need to already be present.
-- `horizon` is explicitly restarted so queue workers pick up new job class code
-  (PHP workers cache class definitions per process — they won't reload otherwise).
+Every build is tagged with its commit SHA. **Migrations are not rolled back** —
+if the bad release migrated, restore the database too.
 
 ---
 
-## 7. First real deploy checklist
+## 7. Operations
 
-- [ ] `Dockerfile`, `nginx.conf` committed to repo
-- [ ] `.env.testing` committed (for CI test job), real `.env` only on the VPS
-- [ ] VPS: Docker installed, deploy user created, SSH key authorized
-- [ ] VPS: `/home/deploy/app/docker-compose.yml` + `.env` in place, `docker compose up -d` run manually once and confirmed healthy
-- [ ] CyberPanel: website created, vHost proxy config added, graceful restart done, SSL issued
-- [ ] DNS A records point at VPS IP
-- [ ] GitHub secrets set: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`
-- [ ] Push to `main`, watch the Actions run, confirm `https://yourdomain.com` loads
-- [ ] Check `docker compose logs horizon` on the VPS to confirm queues are processing
+```bash
+docker compose ps
+docker compose logs -f app
+docker compose logs -f horizon
+docker compose exec app php artisan about
 
-## 8. Known gotchas
+# Database backup — do this before any risky deploy, and nightly off-box.
+docker compose exec -T postgres pg_dump -U erp erp | gzip > backup-$(date +%F).sql.gz
 
-- **Vite/`APP_URL`**: build-time asset URLs get baked in by Vite — make sure
-  `.env` used during the CI build step matches production's actual domain, or
-  assets will 404 after deploy.
-- **Horizon dashboard**: open to everyone by default outside `local` env unless
-  gated in `HorizonServiceProvider::gate()`. Lock this down before going live.
-- **Port collisions**: if more Dockerized sites get added to this VPS later,
-  each needs its own local port and its own `extprocessor` name in CyberPanel.
-- **WebSockets** (Reverb/Echo, if added later): needs an additional `context`
-  block in the vHost conf with upgrade headers — not covered by the config above.
-- **Zero-downtime**: this setup has a few seconds of downtime during
-  `docker compose up -d`. Fine for scheduled deploys; revisit with a blue-green
-  pattern if that ever matters.
+# Uploaded logos and product photos live in the `storage` volume, not Postgres.
+docker run --rm -v erp_storage:/s -v "$PWD":/b alpine tar czf /b/storage-$(date +%F).tar.gz -C /s .
+```
+
+Horizon dashboard: `https://app.galaxyconsumer.com/horizon`, restricted to the
+addresses in `HORIZON_ALLOWED_EMAILS`. Empty means nobody.
+
+---
+
+## 8. Gotchas that have already bitten
+
+- **PHP 8.4, not 8.3.** `composer.lock` pins `symfony/http-foundation v8.1.4`,
+  which requires PHP ≥ 8.4.1. CI on 8.3 fails at `composer install` before a
+  single test runs. `composer.json` still says `^8.3`, which is looser than the
+  lock actually allows.
+- **The asset build needs PHP.** Vite's Wayfinder plugin shells out to
+  `php artisan wayfinder:generate --with-form`, and `resources/js/{actions,routes}`
+  are gitignored. A Node-only build stage cannot produce them.
+- **`ext-pcntl` is needed to *install*, not just to run.** Horizon declares it
+  as a platform requirement, so `composer install` refuses without it — in the
+  builder stage too, which never runs a worker.
+- **`ext-redis` is not optional.** `REDIS_CLIENT=phpredis` means sessions,
+  cache, queues and the invoice-number locks all go through the C extension.
+  The Dockerfile asserts `pcntl`, `posix` and `redis` are present and fails the
+  build if any is missing.
+- **nginx cannot live in its own container here.** With php-fpm separate, nginx
+  has no access to `public/`, so every asset 404s. They share the app container
+  under supervisor.
+- **`config:cache` belongs in the entrypoint, not the Dockerfile.** Baked at
+  build time it freezes the CI runner's environment into the image.
+- **The scheduler needs its own container.** Without it `horizon:snapshot`
+  never runs and the Horizon metrics dashboard stays blank.
+- **`storage` is a volume and mounts over the image's copy.** The entrypoint
+  recreates `framework/{cache,sessions,views}` on every start, or the first
+  boot on a new server cannot write a view cache.
+- **Zero-downtime is not covered.** `up -d` has a few seconds of downtime.
+  Fine for scheduled deploys; revisit with blue-green if that changes.
