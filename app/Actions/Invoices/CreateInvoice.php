@@ -16,6 +16,10 @@ use Illuminate\Validation\ValidationException;
 
 class CreateInvoice
 {
+    public function __construct(
+        private readonly RecalculateDistributorBalance $recalculateBalance,
+    ) {}
+
     /**
      * Write an invoice, move the stock it sells, and roll the distributor's
      * balance forward — all or nothing.
@@ -36,6 +40,7 @@ class CreateInvoice
      *     comment?: string|null,
      *     scheme_description?: string|null,
      *     scheme_amount?: int|null,
+     *     previous_dues?: int|null,
      *     items: list<array{product_id: int, carton_quantity?: int, total_quantity: int, unit_price?: int|null, discount?: int|null, remarks?: string|null}>
      * }  $data
      */
@@ -56,8 +61,19 @@ class CreateInvoice
             $invoiceTotal = array_sum(array_column($lines, 'amount'));
             $discountTotal = array_sum(array_column($lines, 'discount'));
             $schemeAmount = Money::fromInput($data['scheme_amount'] ?? 0);
-            $previousDues = $distributor->balance;
 
+            /*
+             * Previous dues normally come from replaying the account. A figure
+             * typed on the form is kept only when it differs from that — an
+             * opening balance for a distributor coming off paper, say — so a
+             * user who leaves the field alone does not accidentally pin every
+             * invoice to a fixed number.
+             */
+            $override = isset($data['previous_dues']) && (int) $data['previous_dues'] !== $distributor->balance
+                ? (int) $data['previous_dues']
+                : null;
+
+            $previousDues = $override ?? $distributor->balance;
             $totalAmount = $invoiceTotal - $discountTotal - $schemeAmount + $previousDues;
 
             ['number' => $number, 'sequence' => $sequence] = InvoiceNumbers::next($team);
@@ -76,18 +92,36 @@ class CreateInvoice
                 'invoice_total' => $invoiceTotal,
                 'discount_total' => $discountTotal,
                 'previous_dues' => $previousDues,
+                'previous_dues_override' => $override,
                 'total_amount' => $totalAmount,
             ]);
 
             $invoice->items()->createMany($lines);
 
             foreach ($lines as $line) {
-                $products[$line['product_id']]->decrement('stock_quantity', $line['total_quantity']);
+                $product = $products[$line['product_id']];
+
+                /*
+                 * An explicit update rather than decrement(): decrement syncs
+                 * the model's original attributes, which leaves a `saved`
+                 * listener unable to see that stock moved — and that listener
+                 * is what tells other people's open invoice forms to refresh.
+                 * Safe because the row is locked FOR UPDATE above.
+                 */
+                $product->update([
+                    'stock_quantity' => $product->stock_quantity - $line['total_quantity'],
+                ]);
             }
 
-            $distributor->update(['balance' => $totalAmount]);
+            /*
+             * Replay rather than simply setting the balance: an invoice can be
+             * backdated, in which case its true opening figure is the balance
+             * as of its own date, not the account's balance right now. The
+             * replay puts every invoice's dues where they belong.
+             */
+            $this->recalculateBalance->handle($distributor);
 
-            return $invoice;
+            return $invoice->refresh();
         });
     }
 
