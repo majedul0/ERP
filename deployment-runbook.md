@@ -171,6 +171,31 @@ if the bad release migrated, restore the database too.
 
 ---
 
+## 6b. First login on a fresh database
+
+There is no registration route — people arrive by team invitation — so a newly
+migrated database has no way in. Create the first account:
+
+```bash
+docker compose exec app php artisan app:create-admin
+```
+
+It prompts for name, email and password, and creates the company alongside the
+user. Non-interactively:
+
+```bash
+docker compose exec app php artisan app:create-admin \
+  --name="Majedul Islam" --email="you@example.com" \
+  --password='...' --company="Ocean Consumer Products"
+```
+
+**`php artisan db:seed` does not work in production** and is not meant to. The
+seeder builds users through factories, factories need `fakerphp/faker`, and
+that is a dev dependency deliberately absent from the production image. It
+fails with `Call to undefined function Database\Factories\fake()`.
+
+---
+
 ## 7. Operations
 
 ```bash
