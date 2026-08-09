@@ -8,18 +8,20 @@ use Illuminate\Support\Facades\DB;
 class UpdateTeam
 {
     /**
-     * Rename a team.
+     * Update a team's own details.
      *
      * The row is locked for the duration because renaming regenerates the
      * slug (see Team::boot), and two concurrent renames could otherwise
      * settle on the same one.
+     *
+     * @param  array<string, mixed>  $attributes
      */
-    public function handle(Team $team, string $name): Team
+    public function handle(Team $team, array $attributes): Team
     {
-        return DB::transaction(function () use ($team, $name): Team {
+        return DB::transaction(function () use ($team, $attributes): Team {
             $team = Team::whereKey($team->id)->lockForUpdate()->firstOrFail();
 
-            $team->update(['name' => $name]);
+            $team->update($attributes);
 
             return $team;
         });
