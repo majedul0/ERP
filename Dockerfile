@@ -11,10 +11,15 @@
 ###############################################################################
 FROM php:8.4-cli-alpine AS assets
 
-RUN apk add --no-cache nodejs npm git unzip \
-    && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS icu-dev oniguruma-dev libzip-dev \
-    && docker-php-ext-install intl bcmath zip \
-    && apk del .build-deps
+# pcntl is here because laravel/horizon declares ext-pcntl as a platform
+# requirement — `composer install` refuses to resolve without it, even though
+# nothing in this stage ever runs a queue worker.
+#
+# Nothing is uninstalled afterwards: this stage is a throwaway builder that
+# never ships, so trimming it buys nothing and risks removing a shared library
+# that intl or zip still needs at run time.
+RUN apk add --no-cache nodejs npm git unzip $PHPIZE_DEPS icu-dev oniguruma-dev libzip-dev \
+    && docker-php-ext-install intl bcmath zip pcntl
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
