@@ -47,7 +47,12 @@ class DashboardController extends Controller
     }
 
     /**
-     * Headline figures for the welcome banner.
+     * Headline figures for the welcome banner — all of them for **today**.
+     *
+     * `Total` is the day's takings: money actually received, less money spent.
+     * Sales is what was billed, which is a different thing entirely — an
+     * invoice raised today may not be paid for a fortnight, so the two are
+     * expected to differ and the banner is more useful for showing both.
      *
      * Aggregated in the database rather than by loading rows and summing in
      * PHP — these run on every dashboard load, and the row count grows without
@@ -57,25 +62,27 @@ class DashboardController extends Controller
      */
     private function stats(Team $team): array
     {
-        $today = $team->invoices()
+        $invoiced = $team->invoices()
             ->whereDate('sold_at', today())
             ->whereNot('delivery_status', DeliveryStatus::Cancelled)
             ->selectRaw('COALESCE(SUM(invoice_total - discount_total - scheme_amount), 0) AS net')
             ->selectRaw('COALESCE(SUM(scheme_amount), 0) AS schemes')
             ->first();
 
-        $outstanding = (int) $team->distributors()->sum('balance');
+        $received = (int) $team->payments()
+            ->whereDate('paid_on', today())
+            ->sum('amount');
+
+        // Expenses land here when that module ships; an honest zero until then,
+        // not an invented number.
+        $spent = 0;
 
         return [
-            // What distributors owe the company overall.
-            'total' => $outstanding,
-            'sales' => (int) ($today->net ?? 0),
-
-            // Payments and expenses land here when those modules ship; the
-            // figures are honest zeros until then, not invented numbers.
-            'distributorPayments' => 0,
-            'expenses' => 0,
-            'promotions' => (int) ($today->schemes ?? 0),
+            'total' => $received - $spent,
+            'sales' => (int) ($invoiced->net ?? 0),
+            'distributorPayments' => $received,
+            'expenses' => $spent,
+            'promotions' => (int) ($invoiced->schemes ?? 0),
         ];
     }
 
