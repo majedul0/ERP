@@ -28,13 +28,17 @@ enum DeliveryStatus: string
     }
 
     /**
-     * Whether stock has left the building for an invoice in this state.
+     * Whether the sale still stands.
      *
-     * Cancelled and returned invoices put their quantities back; pending and
-     * delivered both hold stock, because pending means "sold, not yet driven
-     * out", not "not yet committed".
+     * A live invoice holds its stock out of the warehouse *and* its money on
+     * the distributor's account; a void one holds neither. The two always move
+     * together — goods coming back and the debt being cleared are the same
+     * event — so this is one question, not two.
+     *
+     * Pending counts as live: it means "sold, not yet driven out", not "not
+     * yet committed".
      */
-    public function holdsStock(): bool
+    public function isLive(): bool
     {
         return match ($this) {
             self::Pending, self::Delivered => true,
