@@ -1,0 +1,84 @@
+# Lives at /home/deploy/app/docker-compose.yml on the VPS.
+#
+# Committed here so it is versioned and reviewable, but the copy the server runs
+# is the one you place there — CI never overwrites it, because the .env sitting
+# beside it is the only thing that knows the production secrets.
+#
+# APP_IMAGE_TAG is set by the deploy workflow to the commit SHA, so a rollback
+# is `APP_IMAGE_TAG=<older-sha> docker compose up -d` and nothing else.
+
+name: erp
+
+x-app: &app
+  image: ghcr.io/majedul0/erp:${APP_IMAGE_TAG:-latest}
+  restart: unless-stopped
+  env_file: .env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  volumes:
+    # Uploaded logos, product photos and invoice PDFs. The only application
+    # state that is not in Postgres — back this up too.
+    - storage:/var/www/html/storage
+
+services:
+  app:
+    <<: *app
+    ports:
+      # Localhost only. CyberPanel/OpenLiteSpeed owns 80 and 443 and proxies
+      # here; this port must never be reachable from the internet.
+      - "127.0.0.1:8080:80"
+
+  horizon:
+    <<: *app
+    command: php artisan horizon
+    environment:
+      CACHE_ON_BOOT: "false"
+    # Horizon needs time to finish the job in hand before the container dies.
+    stop_grace_period: 40s
+
+  scheduler:
+    <<: *app
+    # Without this nothing on the schedule runs — including horizon:snapshot,
+    # which is what fills in the Horizon metrics dashboard.
+    command: php artisan schedule:work
+    environment:
+      CACHE_ON_BOOT: "false"
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Redis holds sessions, the cache, the queue and the invoice-number locks.
+    # appendonly means a restart does not lose queued jobs.
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+volumes:
+  pgdata:
+  redisdata:
+  storage:

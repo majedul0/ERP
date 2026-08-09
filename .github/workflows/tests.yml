@@ -1,10 +1,10 @@
 name: tests
 
+# Pushes to main are covered by the deploy workflow, which runs the same checks
+# before it builds anything. Running both would just double the queue time.
 on:
-  push:
-    branches:
-      - main
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -22,7 +22,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           tools: composer:v2
           coverage: none
 
@@ -30,9 +30,23 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
+          cache: npm
 
-      - name: Setup Application
-        run: composer setup
+      - name: Install dependencies
+        run: |
+          composer install --prefer-dist --no-interaction --no-progress
+          npm ci
 
-      - name: Run CI Checks
+      # Not `composer setup`: that runs `artisan migrate`, and there is no
+      # Postgres on the runner. The suite needs none — phpunit.xml forces
+      # sqlite :memory:, array cache and a sync queue.
+      - name: Prepare environment
+        run: cp .env.example .env
+
+      # Also generates resources/js/{actions,routes} via Wayfinder, which tsc
+      # and eslint need before they can pass.
+      - name: Build assets
+        run: npm run build
+
+      - name: Run CI checks
         run: composer ci:check

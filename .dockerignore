@@ -1,0 +1,48 @@
+# Keep the build context small and make sure nothing local leaks into an image
+# that gets pushed to a public registry.
+
+.git
+.github
+.claude
+.ai
+node_modules
+vendor
+
+# Built inside the image, never copied in from a developer's machine.
+public/build
+public/hot
+public/storage
+public/fonts-manifest.dev.json
+resources/js/actions
+resources/js/routes
+resources/js/wayfinder
+
+# Secrets and local state. `.env` in particular must never reach a public image.
+.env
+.env.*
+!.env.example
+auth.json
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/public/*
+storage/app/private/*
+storage/pail
+bootstrap/cache/*.php
+.phpunit.cache
+.phpunit.result.cache
+
+# Developer tooling with no place in a runtime image.
+docker-compose.yml
+*.md
+.editorconfig
+.prettierrc
+.prettierignore
+eslint.config.js
+phpstan.neon
+phpunit.xml
+pint.json
+.idea
+.vscode
+.zed
