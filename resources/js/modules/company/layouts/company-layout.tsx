@@ -14,7 +14,9 @@ export default function CompanyLayout({
 
     return (
         <div className="flex min-h-screen flex-col bg-ocean-50/40">
-            <CompanyHeader brand={brand} />
+            <div className="print:hidden">
+                <CompanyHeader brand={brand} />
+            </div>
             <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-5 lg:px-6">
                 {children}
             </main>

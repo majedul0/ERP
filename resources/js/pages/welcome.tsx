@@ -64,7 +64,7 @@ export default function Welcome({
                         <h1 className="max-w-md text-4xl font-bold text-white">
                             Sales, invoices, and finances in one workspace.
                         </h1>
-                        <p className="mt-4 max-w-md text-white/85">
+                        <p className="mt-4 max-w-md font-display text-white/85">
                             Everything your company bills, buys, and banks —
                             tracked from a single dashboard.
                         </p>
@@ -102,7 +102,7 @@ export default function Welcome({
                         <h2 className="text-2xl font-bold text-ocean-900">
                             Log in to your account
                         </h2>
-                        <p className="mt-2 text-sm text-ocean-800/70">
+                        <p className="mt-2 font-display text-sm text-ocean-800/70">
                             Enter your email and password below to continue.
                         </p>
 

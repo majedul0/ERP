@@ -48,6 +48,8 @@ class HandleInertiaRequests extends Middleware
             'companyBrand' => fn () => $user?->currentTeam ? [
                 'name' => $user->currentTeam->name,
                 'logoUrl' => $user->currentTeam->logoUrl(),
+                'address' => $user->currentTeam->address,
+                'phone' => $user->currentTeam->phone,
                 'currencySymbol' => config('company.currency_symbol'),
             ] : null,
             'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],

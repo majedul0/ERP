@@ -8,6 +8,9 @@ export type CompanyBrand = {
      * Uploads live under `storage/app/public/logos/{team_id}/`.
      */
     logoUrl: string | null;
+    /** Printed in the header of every invoice and challan. */
+    address: string | null;
+    phone: string | null;
     /** Single currency per company for v1 (see PRD 1.4). */
     currencySymbol: string;
 };

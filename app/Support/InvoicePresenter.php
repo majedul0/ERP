@@ -4,6 +4,8 @@ namespace App\Support;
 
 use App\Models\Distributor;
 use App\Models\Invoice;
+use App\Models\Payment;
+use Illuminate\Support\Carbon;
 
 /**
  * Shapes invoices for the React side.
@@ -55,6 +57,7 @@ final class InvoicePresenter
             'previousDues' => $invoice->previous_dues,
             'totalAmount' => $invoice->total_amount,
             'createdBy' => $invoice->creator?->name,
+            'payments' => self::paymentsSettling($invoice),
             'distributor' => self::distributor($invoice->distributor),
             'items' => $invoice->items->map(fn ($item) => [
                 'id' => $item->id,
@@ -73,9 +76,94 @@ final class InvoicePresenter
     }
 
     /**
+     * The payments that settled this invoice, for the note printed beside the
+     * totals.
+     *
+     * Payments are made against a running account, not against one invoice, so
+     * "settling this one" means everything received after it and before the
+     * next invoice to the same distributor. That is precisely the money the
+     * distributor handed over while this invoice was the outstanding one.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function paymentsSettling(Invoice $invoice): array
+    {
+        $nextInvoiceDate = Invoice::query()
+            ->where('distributor_id', $invoice->distributor_id)
+            ->whereKeyNot($invoice->id)
+            ->where(fn ($query) => $query
+                ->where('sold_at', '>', $invoice->sold_at)
+                ->orWhere(fn ($tie) => $tie
+                    ->where('sold_at', $invoice->sold_at)
+                    ->where('id', '>', $invoice->id)))
+            ->orderBy('sold_at')
+            ->orderBy('id')
+            ->value('sold_at');
+
+        return Payment::query()
+            ->where('distributor_id', $invoice->distributor_id)
+            ->with('bank')
+            ->whereDate('paid_on', '>=', $invoice->sold_at->toDateString())
+            ->when($nextInvoiceDate, fn ($query) => $query->whereDate(
+                'paid_on',
+                '<',
+                Carbon::parse($nextInvoiceDate)->toDateString(),
+            ))
+            ->orderBy('paid_on')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Payment $payment) => [
+                'id' => $payment->id,
+                'paidOn' => $payment->paid_on->toIso8601String(),
+                'bankName' => $payment->bank?->name,
+                'amount' => $payment->amount,
+                'comment' => $payment->comment,
+            ])
+            ->all();
+    }
+
+    /**
+     * The delivery note.
+     *
+     * A challan travels with the goods and is signed by whoever receives
+     * them, so it carries quantities and nothing priced — no unit price, no
+     * amount, no discount, no balance. That is not styling: the money is
+     * absent from the payload, so no future edit to the page can put a price
+     * in front of a delivery driver or a shopkeeper's assistant.
+     *
      * @return array<string, mixed>
      */
-    public static function distributor(Distributor $distributor): array
+    public static function challan(Invoice $invoice): array
+    {
+        return [
+            'id' => $invoice->id,
+            'invoiceNumber' => $invoice->invoice_number,
+            'soldAt' => $invoice->sold_at->toIso8601String(),
+            'deliveryStatus' => $invoice->delivery_status->value,
+            'deliveryStatusLabel' => $invoice->delivery_status->label(),
+            'comment' => $invoice->comment,
+
+            // Contact details only. The full distributor payload carries an
+            // outstanding balance, which has no business on a delivery note.
+            'distributor' => self::distributorContact($invoice->distributor),
+            'items' => $invoice->items->map(fn ($item) => [
+                'id' => $item->id,
+                'lineNumber' => $item->line_number,
+                'productName' => $item->product_name,
+                'productSku' => $item->product_sku,
+                'cartonQuantity' => $item->carton_quantity,
+                'totalQuantity' => $item->total_quantity,
+                'remarks' => $item->remarks,
+            ])->all(),
+        ];
+    }
+
+    /**
+     * Who the distributor is and where to find them. No money.
+     *
+     * @return array<string, mixed>
+     */
+    public static function distributorContact(Distributor $distributor): array
     {
         return [
             'id' => $distributor->id,
@@ -87,6 +175,18 @@ final class InvoicePresenter
             'district' => $distributor->district,
             'division' => $distributor->division,
             'fullAddress' => $distributor->fullAddress(),
+        ];
+    }
+
+    /**
+     * Contact details plus the outstanding balance, for priced screens.
+     *
+     * @return array<string, mixed>
+     */
+    public static function distributor(Distributor $distributor): array
+    {
+        return [
+            ...self::distributorContact($distributor),
             'balance' => $distributor->balance,
         ];
     }

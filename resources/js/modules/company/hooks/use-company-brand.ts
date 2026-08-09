@@ -14,6 +14,8 @@ export function useCompanyBrand(): CompanyBrand {
         companyBrand ?? {
             name: currentTeam?.name ?? name,
             logoUrl: null,
+            address: null,
+            phone: null,
             currencySymbol: '৳',
         }
     );

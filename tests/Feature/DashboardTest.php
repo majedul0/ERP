@@ -6,6 +6,7 @@ use App\Enums\DeliveryStatus;
 use App\Enums\TeamRole;
 use App\Models\Distributor;
 use App\Models\Invoice;
+use App\Models\Payment;
 use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Models\User;
@@ -114,6 +115,77 @@ class DashboardTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->has('todaysSales', 0)
                 ->where('stats.sales', 0),
+            );
+    }
+
+    /**
+     * Sales is what was billed today; Total is what was actually collected.
+     * They are expected to differ — an invoice raised today may not be paid
+     * for a fortnight — which is why the banner shows both.
+     */
+    public function test_todays_payments_drive_the_total_and_the_payments_figure()
+    {
+        $user = User::factory()->create();
+        $team = $user->currentTeam;
+        $distributor = Distributor::factory()->create(['team_id' => $team->id]);
+
+        Invoice::create([
+            'team_id' => $team->id,
+            'distributor_id' => $distributor->id,
+            'invoice_number' => 'INV1',
+            'sequence_number' => 1,
+            'sold_at' => now(),
+            'invoice_total' => 60000,
+            'total_amount' => 60000,
+        ]);
+
+        Payment::factory()->create([
+            'team_id' => $team->id,
+            'distributor_id' => $distributor->id,
+            'paid_on' => now()->toDateString(),
+            'amount' => 25000,
+        ]);
+
+        // Yesterday's money is not today's takings.
+        Payment::factory()->create([
+            'team_id' => $team->id,
+            'distributor_id' => $distributor->id,
+            'paid_on' => now()->subDay()->toDateString(),
+            'amount' => 9000,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('stats.sales', 60000)
+                ->where('stats.distributorPayments', 25000)
+                ->where('stats.total', 25000)
+                ->where('stats.expenses', 0),
+            );
+    }
+
+    public function test_scheme_amounts_are_reported_as_promotions()
+    {
+        $user = User::factory()->create();
+        $team = $user->currentTeam;
+
+        Invoice::create([
+            'team_id' => $team->id,
+            'distributor_id' => Distributor::factory()->create(['team_id' => $team->id])->id,
+            'invoice_number' => 'INV1',
+            'sequence_number' => 1,
+            'sold_at' => now(),
+            'invoice_total' => 10000,
+            'scheme_amount' => 500,
+            'total_amount' => 9500,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('stats.promotions', 500)
+                // Sales is net of the scheme it gave away.
+                ->where('stats.sales', 9500),
             );
     }
 

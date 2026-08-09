@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\StockVersion;
 use App\Support\TenantFileStore;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -42,6 +43,29 @@ class Product extends Model
 {
     /** @use HasFactory<ProductFactory> */
     use HasFactory, SoftDeletes;
+
+    /**
+     * Bootstrap the model and its traits.
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        /*
+         * Every path that moves stock ends in a saved product — an invoice
+         * being written, edited, cancelled, or a shelf being recounted. Hooking
+         * the model rather than each of those actions means a future one cannot
+         * forget to announce itself, and open invoice forms elsewhere in the
+         * company find out.
+         */
+        static::saved(function (Product $product): void {
+            if ($product->wasChanged('stock_quantity') || $product->wasRecentlyCreated) {
+                StockVersion::bump($product->team_id);
+            }
+        });
+
+        static::deleted(fn (Product $product) => StockVersion::bump($product->team_id));
+    }
 
     /**
      * @return BelongsTo<Team, $this>

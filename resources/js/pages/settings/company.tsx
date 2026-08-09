@@ -24,6 +24,8 @@ export default function Company({
             <CompanyNameForm
                 name={company.name}
                 slug={company.slug}
+                address={company.address}
+                phone={company.phone}
                 canUpdate={canUpdate}
             />
 

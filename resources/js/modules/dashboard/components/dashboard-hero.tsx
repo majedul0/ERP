@@ -93,7 +93,7 @@ export default function DashboardHero({
             <div className="relative flex flex-col gap-7 p-6 lg:p-8">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                        <p className="text-sm font-medium text-white/85">
+                        <p className="font-display text-sm font-medium text-white/85">
                             Welcome,
                         </p>
                         <h1 className="mt-1.5 text-2xl font-bold text-white lg:text-3xl">

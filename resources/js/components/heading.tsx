@@ -19,7 +19,9 @@ export default function Heading({
                 {title}
             </h2>
             {description && (
-                <p className="text-sm text-muted-foreground">{description}</p>
+                <p className="font-display text-sm text-muted-foreground">
+                    {description}
+                </p>
             )}
         </header>
     );

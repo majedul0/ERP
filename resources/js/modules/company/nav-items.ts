@@ -1,4 +1,5 @@
 import { dashboard } from '@/routes';
+import { index as banksIndex } from '@/routes/banks';
 import {
     index as distributorsIndex,
     create as newDistributor,
@@ -7,6 +8,7 @@ import {
     create as newInvoice,
     index as invoicesIndex,
 } from '@/routes/invoices';
+import { index as paymentsIndex } from '@/routes/payments';
 import {
     index as productsIndex,
     create as newProduct,
@@ -38,7 +40,10 @@ export function companyNavItems(teamSlug: string | null): CompanyNavItem[] {
             items: [
                 { title: 'Invoices', href: invoicesIndex(teamSlug).url },
                 { title: 'New Invoice', href: newInvoice(teamSlug).url },
-                { title: 'Payments Received' },
+                {
+                    title: 'Payments Received',
+                    href: paymentsIndex(teamSlug).url,
+                },
                 { title: 'Sales Returns' },
             ],
         },
@@ -70,8 +75,12 @@ export function companyNavItems(teamSlug: string | null): CompanyNavItem[] {
         {
             title: 'Finance',
             items: [
+                {
+                    title: 'Payments Received',
+                    href: paymentsIndex(teamSlug).url,
+                },
+                { title: 'Banks', href: banksIndex(teamSlug).url },
                 { title: 'Expenses' },
-                { title: 'Ledger' },
                 { title: 'Reports' },
             ],
         },

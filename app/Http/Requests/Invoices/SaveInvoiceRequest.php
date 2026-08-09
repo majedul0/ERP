@@ -6,7 +6,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class CreateInvoiceRequest extends FormRequest
+class SaveInvoiceRequest extends FormRequest
 {
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -32,6 +32,14 @@ class CreateInvoiceRequest extends FormRequest
             'scheme_description' => ['nullable', 'string', 'max:255'],
             // Whole amounts throughout — see App\Support\Money.
             'scheme_amount' => ['nullable', 'integer', 'min:0', 'max:99999999'],
+
+            /*
+             * The opening balance shown on the form. Normally the figure the
+             * account produces, but a user may type their own — an opening
+             * balance for a distributor coming off paper, say. Negative is
+             * allowed: it means the company holds money on their behalf.
+             */
+            'previous_dues' => ['nullable', 'integer', 'min:-999999999', 'max:999999999'],
 
             'items' => ['required', 'array', 'min:1', 'max:200'],
             'items.*.product_id' => [
@@ -62,6 +70,7 @@ class CreateInvoiceRequest extends FormRequest
      *     comment: string|null,
      *     scheme_description: string|null,
      *     scheme_amount: int,
+     *     previous_dues: int|null,
      *     items: list<array{product_id: int, carton_quantity: int, total_quantity: int, unit_price: int|null, discount: int, remarks: string|null}>
      * }
      */
@@ -81,6 +90,9 @@ class CreateInvoiceRequest extends FormRequest
                 ? (string) $validated['scheme_description']
                 : null,
             'scheme_amount' => (int) ($validated['scheme_amount'] ?? 0),
+            'previous_dues' => isset($validated['previous_dues'])
+                ? (int) $validated['previous_dues']
+                : null,
             'items' => array_values(array_map(fn (array $item): array => [
                 'product_id' => (int) $item['product_id'],
                 'carton_quantity' => (int) ($item['carton_quantity'] ?? 0),

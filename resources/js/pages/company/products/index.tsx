@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { formatAmount, formatMoney } from '@/lib/format';
 import { useCompanyBrand } from '@/modules/company';
 import type { Product } from '@/modules/products';
-import { create } from '@/routes/products';
+import { create, edit } from '@/routes/products';
 
 const headCell =
     'bg-ocean-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
@@ -47,13 +47,16 @@ export default function Products({ products }: { products: Product[] }) {
                                 <th className={`${headCell} text-right`}>
                                     Stock
                                 </th>
+                                <th className={headCell}>
+                                    <span className="sr-only">Update</span>
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-ocean-100">
                             {products.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={8}
+                                        colSpan={9}
                                         className="px-4 py-10 text-center text-ocean-800/60"
                                     >
                                         No products registered yet.
@@ -112,6 +115,18 @@ export default function Products({ products }: { products: Product[] }) {
                                         className={`${bodyCell} text-right font-medium tabular-nums`}
                                     >
                                         {formatAmount(product.stockQuantity)}
+                                    </td>
+                                    <td className={bodyCell}>
+                                        <Link
+                                            href={edit({
+                                                current_team:
+                                                    currentTeam?.slug ?? '',
+                                                product: product.id,
+                                            })}
+                                            className="text-ocean-700 underline underline-offset-4 hover:text-ocean-900"
+                                        >
+                                            Update
+                                        </Link>
                                     </td>
                                 </tr>
                             ))}

@@ -1,6 +1,8 @@
 import type { DeliveryStatus } from '@/modules/dashboard';
+import type { InvoicePayment } from '@/modules/payments';
 
-export type DistributorOption = {
+/** Who a distributor is and where to find them. Carries no money. */
+export type DistributorContact = {
     id: number;
     name: string;
     proprietorName: string | null;
@@ -10,8 +12,38 @@ export type DistributorOption = {
     district: string | null;
     division: string | null;
     fullAddress: string;
+};
+
+export type DistributorOption = DistributorContact & {
     /** Outstanding balance, carried onto a new invoice as Previous Dues. */
     balance: number;
+};
+
+/**
+ * The delivery note.
+ *
+ * Deliberately has no priced fields — the server does not send them, so the
+ * challan cannot show money even by accident.
+ */
+export type ChallanDetail = {
+    id: number;
+    invoiceNumber: string;
+    soldAt: string;
+    deliveryStatus: DeliveryStatus;
+    deliveryStatusLabel: string;
+    comment: string | null;
+    distributor: DistributorContact;
+    items: ChallanItem[];
+};
+
+export type ChallanItem = {
+    id: number;
+    lineNumber: number;
+    productName: string;
+    productSku: string | null;
+    cartonQuantity: number;
+    totalQuantity: number;
+    remarks: string | null;
 };
 
 export type InvoiceItem = {
@@ -42,6 +74,8 @@ export type InvoiceDetail = {
     previousDues: number;
     totalAmount: number;
     createdBy: string | null;
+    /** Money received while this invoice was the outstanding one. */
+    payments: InvoicePayment[];
     distributor: DistributorOption;
     items: InvoiceItem[];
 };

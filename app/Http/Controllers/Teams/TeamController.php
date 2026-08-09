@@ -93,7 +93,7 @@ class TeamController extends Controller
     {
         Gate::authorize('update', $team);
 
-        $team = $updateTeam->handle($team, $request->validated('name'));
+        $team = $updateTeam->handle($team, ['name' => $request->validated('name')]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Team updated.')]);
 

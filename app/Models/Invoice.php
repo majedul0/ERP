@@ -26,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property int $invoice_total
  * @property int $discount_total
  * @property int $previous_dues
+ * @property int|null $previous_dues_override
  * @property int $total_amount
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -49,6 +50,7 @@ use Illuminate\Support\Carbon;
     'invoice_total',
     'discount_total',
     'previous_dues',
+    'previous_dues_override',
     'total_amount',
 ])]
 class Invoice extends Model

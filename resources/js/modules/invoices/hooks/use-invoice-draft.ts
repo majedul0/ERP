@@ -40,9 +40,38 @@ export type InvoiceLineView = InvoiceLineDraft & {
     stockWarning: string | null;
 };
 
+/** What an edit screen starts from; a create screen passes nothing. */
+export type InvoiceDraftSeed = {
+    distributorId: number;
+    lines: Array<{
+        productId: number | null;
+        cartonQuantity: number;
+        totalQuantity: number;
+        unitPrice: number;
+        discount: number;
+        remarks: string | null;
+    }>;
+};
+
+function seededLines(seed: InvoiceDraftSeed): InvoiceLineDraft[] {
+    return seed.lines.map((line) => {
+        nextKey += 1;
+
+        return {
+            key: `line-${nextKey}`,
+            productId: line.productId,
+            cartonQuantity: String(line.cartonQuantity),
+            totalQuantity: String(line.totalQuantity),
+            unitPrice: String(line.unitPrice),
+            discount: String(line.discount),
+            remarks: line.remarks ?? '',
+        };
+    });
+}
+
 /**
- * Holds the create-invoice form's editable state and everything derived from
- * it.
+ * Holds an invoice form's editable state and everything derived from it —
+ * shared by the create and edit screens.
  *
  * The totals here are for the person filling the form. The server recomputes
  * all of them from the product rows it locks at save time, so a price that
@@ -51,13 +80,37 @@ export type InvoiceLineView = InvoiceLineDraft & {
 export function useInvoiceDraft(
     products: InvoiceProductOption[],
     distributors: DistributorOption[],
+    seed?: InvoiceDraftSeed,
 ) {
-    const [distributorId, setDistributorId] = useState<number | null>(null);
-    const [lines, setLines] = useState<InvoiceLineDraft[]>(() => [blankLine()]);
+    const [distributorId, setDistributorId] = useState<number | null>(
+        seed?.distributorId ?? null,
+    );
+    const [lines, setLines] = useState<InvoiceLineDraft[]>(() =>
+        seed && seed.lines.length > 0 ? seededLines(seed) : [blankLine()],
+    );
 
     const productsById = new Map(
         products.map((product) => [product.id, product]),
     );
+
+    /*
+     * On an edit, the stock figures the server sent already exclude what this
+     * invoice is holding — it has not been returned yet. Add each line's
+     * original quantity back before warning, or raising a quantity by one
+     * would look like it needed a whole fresh allocation.
+     */
+    const heldByThisInvoice = new Map<number, number>();
+
+    for (const line of seed?.lines ?? []) {
+        if (line.productId !== null) {
+            heldByThisInvoice.set(
+                line.productId,
+                (heldByThisInvoice.get(line.productId) ?? 0) +
+                    line.totalQuantity,
+            );
+        }
+    }
+
     const distributor =
         distributors.find((candidate) => candidate.id === distributorId) ??
         null;
@@ -119,13 +172,17 @@ export function useInvoiceDraft(
                 0,
             );
 
+        const available = product
+            ? product.stockQuantity + (heldByThisInvoice.get(product.id) ?? 0)
+            : 0;
+
         return {
             ...line,
             product,
             amount: quantity * toWholeAmount(line.unitPrice),
             stockWarning:
-                product && requested > product.stockQuantity
-                    ? `Only ${product.stockQuantity} in stock`
+                product && requested > available
+                    ? `Only ${available} in stock`
                     : null,
         };
     });

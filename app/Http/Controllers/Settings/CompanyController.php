@@ -7,7 +7,7 @@ use App\Actions\Teams\UpdateCompanyLogo;
 use App\Actions\Teams\UpdateTeam;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\CompanyLogoRequest;
-use App\Http\Requests\Teams\SaveTeamRequest;
+use App\Http\Requests\Settings\CompanyProfileRequest;
 use App\Models\Team;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,6 +35,8 @@ class CompanyController extends Controller
                 'name' => $team->name,
                 'slug' => $team->slug,
                 'logoUrl' => $team->logoUrl(),
+                'address' => $team->address,
+                'phone' => $team->phone,
             ],
             'canUpdate' => Gate::allows('update', $team),
             'maxLogoKilobytes' => (int) config('company.storage.logos.max_kilobytes'),
@@ -42,17 +44,17 @@ class CompanyController extends Controller
     }
 
     /**
-     * Rename the company.
+     * Update the company's name, address and phone.
      */
-    public function update(SaveTeamRequest $request, UpdateTeam $updateTeam): RedirectResponse
+    public function update(CompanyProfileRequest $request, UpdateTeam $updateTeam): RedirectResponse
     {
         $team = $this->currentTeam($request);
 
         Gate::authorize('update', $team);
 
-        $updateTeam->handle($team, $request->validated('name'));
+        $updateTeam->handle($team, $request->validated());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Company name updated.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Company details updated.')]);
 
         return to_route('company.edit');
     }

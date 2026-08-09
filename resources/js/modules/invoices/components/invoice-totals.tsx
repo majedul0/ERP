@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { formatMoney } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -7,6 +8,8 @@ type Row = {
     /** Rendered heavier, with a rule above it. */
     emphasis?: boolean;
     hint?: string;
+    /** Replaces the formatted figure — an input, on the create screen. */
+    control?: ReactNode;
 };
 
 export default function InvoiceTotals({
@@ -47,7 +50,7 @@ export default function InvoiceTotals({
                             row.emphasis && 'text-base font-bold',
                         )}
                     >
-                        {formatMoney(row.value, currencySymbol)}
+                        {row.control ?? formatMoney(row.value, currencySymbol)}
                     </dd>
                 </div>
             ))}

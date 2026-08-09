@@ -13,6 +13,16 @@
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
+    /*
+     * Headings and their subtitles. Applied to h1–h6 in the base layer below,
+     * so a new page gets it by writing a heading rather than by remembering a
+     * class. Everything else — body copy, labels, buttons, table data — stays
+     * on the sans face, where a high-contrast serif would hurt legibility at
+     * small sizes.
+     */
+    --font-display:
+        'Playfair Display', ui-serif, Georgia, 'Times New Roman', serif;
+
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
@@ -151,5 +161,56 @@
 
     body {
         @apply bg-background text-foreground;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-family: var(--font-display);
+    }
+}
+
+/*
+ * Printing invoices and challans.
+ *
+ * Browsers drop background colours by default to save ink, which would print
+ * the table headers as white-on-white. `print-color-adjust: exact` keeps them,
+ * and the page margin is set here rather than left to the browser so the sheet
+ * matches whatever the office printer is loaded with.
+ */
+@media print {
+    @page {
+        size: A4;
+        margin: 12mm;
+    }
+
+    html,
+    body {
+        background: #fff;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    /* The document is the page: no app chrome, no padding around it. */
+    body > * {
+        background: #fff;
+    }
+
+    main {
+        max-width: none !important;
+        padding: 0 !important;
+    }
+
+    /* A table row split across two sheets is unreadable on a delivery note. */
+    tr,
+    img {
+        break-inside: avoid;
+    }
+
+    thead {
+        display: table-header-group;
     }
 }

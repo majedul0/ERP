@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { formatMoney } from '@/lib/format';
 import { useCompanyBrand } from '@/modules/company';
 import type { DistributorOption } from '@/modules/invoices';
-import { create } from '@/routes/distributors';
+import { create, show } from '@/routes/distributors';
 
 const headCell =
     'bg-ocean-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
@@ -43,7 +43,7 @@ export default function Distributors({
                                 <th className={headCell}>Phone</th>
                                 <th className={headCell}>Address</th>
                                 <th className={`${headCell} text-right`}>
-                                    Outstanding
+                                    Due
                                 </th>
                             </tr>
                         </thead>
@@ -68,7 +68,16 @@ export default function Distributors({
                                         {distributor.id}
                                     </td>
                                     <td className={`${bodyCell} font-medium`}>
-                                        {distributor.name}
+                                        <Link
+                                            href={show({
+                                                current_team:
+                                                    currentTeam?.slug ?? '',
+                                                distributor: distributor.id,
+                                            })}
+                                            className="text-ocean-700 underline underline-offset-4 hover:text-ocean-900"
+                                        >
+                                            {distributor.name}
+                                        </Link>
                                     </td>
                                     <td className={bodyCell}>
                                         {distributor.proprietorName ?? '—'}

@@ -22,10 +22,12 @@ class SaveProductRequest extends FormRequest
                 'string',
                 'max:64',
                 // Unique within the company only — two companies may both
-                // sell something they each call "OFC-15".
+                // sell something they each call "OFC-15". `ignore` keeps an
+                // edit that leaves the SKU alone from colliding with itself.
                 Rule::unique('products', 'sku')
                     ->where('team_id', $teamId)
-                    ->whereNull('deleted_at'),
+                    ->whereNull('deleted_at')
+                    ->ignore($this->route('product')),
             ],
             'carton_size' => ['required', 'integer', 'min:1', 'max:100000'],
 

@@ -20,6 +20,8 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string $slug
  * @property string|null $logo_path
+ * @property string|null $address
+ * @property string|null $phone
  * @property bool $is_personal
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -30,8 +32,10 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Distributor> $distributors
  * @property-read Collection<int, Product> $products
  * @property-read Collection<int, Invoice> $invoices
+ * @property-read Collection<int, Bank> $banks
+ * @property-read Collection<int, Payment> $payments
  */
-#[Fillable(['name', 'slug', 'logo_path', 'is_personal'])]
+#[Fillable(['name', 'slug', 'logo_path', 'address', 'phone', 'is_personal'])]
 class Team extends Model
 {
     /** @use HasFactory<TeamFactory> */
@@ -136,6 +140,22 @@ class Team extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    /**
+     * @return HasMany<Bank, $this>
+     */
+    public function banks(): HasMany
+    {
+        return $this->hasMany(Bank::class);
+    }
+
+    /**
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
     }
 
     /**

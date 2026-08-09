@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Products;
 
 use App\Actions\Products\CreateProduct;
+use App\Actions\Products\UpdateProduct;
 use App\Concerns\ResolvesCurrentTeam;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Products\SaveProductRequest;
@@ -54,6 +55,46 @@ class ProductController extends Controller
         );
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Product added.')]);
+
+        return to_route('products.index', ['current_team' => $team->slug]);
+    }
+
+    /**
+     * Show the edit form.
+     *
+     * See InvoiceController::show() for why `$current_team` must be declared.
+     */
+    public function edit(Request $request, string $current_team, Product $product): Response
+    {
+        $team = $this->currentTeam($request);
+
+        abort_unless($product->team_id === $team->id, 404);
+
+        return Inertia::render('company/products/edit', [
+            'product' => $this->present($product),
+        ]);
+    }
+
+    /**
+     * Save the changes.
+     */
+    public function update(
+        SaveProductRequest $request,
+        string $current_team,
+        Product $product,
+        UpdateProduct $updateProduct,
+    ): RedirectResponse {
+        $team = $this->currentTeam($request);
+
+        abort_unless($product->team_id === $team->id, 404);
+
+        $updateProduct->handle(
+            $product,
+            $request->safe()->except('photo'),
+            $request->file('photo'),
+        );
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Product updated.')]);
 
         return to_route('products.index', ['current_team' => $team->slug]);
     }

@@ -51,6 +51,51 @@ class CompanyTest extends TestCase
         ]);
     }
 
+    public function test_the_address_and_phone_printed_on_documents_can_be_set()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->patch(route('company.update'), [
+            'name' => 'Ocean Consumer Products',
+            'address' => 'Uttara, Dhaka, Bangladesh',
+            'phone' => '01712-932814',
+        ]);
+
+        $response->assertRedirect(route('company.edit'));
+
+        $team = $user->currentTeam->fresh();
+
+        $this->assertSame('Uttara, Dhaka, Bangladesh', $team->address);
+        $this->assertSame('01712-932814', $team->phone);
+    }
+
+    public function test_the_address_and_phone_reach_every_page_as_shared_props()
+    {
+        $user = User::factory()->create();
+        $user->currentTeam->update([
+            'address' => 'Uttara, Dhaka, Bangladesh',
+            'phone' => '01712-932814',
+        ]);
+
+        $this->actingAs($user->fresh())
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('companyBrand.address', 'Uttara, Dhaka, Bangladesh')
+                ->where('companyBrand.phone', '01712-932814'),
+            );
+    }
+
+    public function test_the_address_and_phone_are_optional()
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->patch(route('company.update'), ['name' => 'Ocean Consumer Products'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertNull($user->currentTeam->fresh()->address);
+    }
+
     public function test_renaming_the_company_regenerates_its_slug()
     {
         $user = User::factory()->create();
