@@ -135,7 +135,7 @@ jobs:
 
             # Prove it actually serves before calling the deploy done.
             for i in $(seq 1 15); do
-              if curl -fsS http://127.0.0.1:8080/up > /dev/null; then
+              if curl -fsS http://127.0.0.1:8081/up > /dev/null; then
                 echo "Healthy after ${i}s"
                 docker image prune -f
                 exit 0

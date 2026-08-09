@@ -23,9 +23,9 @@ On the box:
 ```
 internet :443
   └─ OpenLiteSpeed (CyberPanel — owns 80/443, terminates TLS)
-       └─ proxy → 127.0.0.1:8080
+       └─ proxy → 127.0.0.1:8081
             └─ docker compose (project "erp")
-                 ├─ app        nginx + php-fpm      → publishes 127.0.0.1:8080
+                 ├─ app        nginx + php-fpm      → publishes 127.0.0.1:8081
                  ├─ horizon    php artisan horizon
                  ├─ scheduler  php artisan schedule:work
                  ├─ postgres   (private network only)
@@ -75,7 +75,7 @@ cd /home/deploy/app
 # place docker-compose.yml and .env here
 chmod 600 .env
 docker compose up -d
-curl -I http://127.0.0.1:8080/up      # expect 200
+curl -I http://127.0.0.1:8081/up      # expect 200
 ```
 
 `APP_KEY` is generated **once** (`php artisan key:generate --show`) and never
@@ -91,7 +91,7 @@ changed: it decrypts existing sessions, cookies and any encrypted column.
    ```
    extprocessor erpapp {
      type                    proxy
-     address                 127.0.0.1:8080
+     address                 127.0.0.1:8081
      maxConns                100
      pcKeepAliveTimeout      60
      connTimeout             10
@@ -115,9 +115,9 @@ changed: it decrypts existing sessions, cookies and any encrypted column.
 Verify:
 
 ```bash
-curl -I http://127.0.0.1:8080/up        # on the box  → 200
+curl -I http://127.0.0.1:8081/up        # on the box  → 200
 curl -I https://<your-domain>           # outside     → 200 over TLS
-curl -I http://<vps-ip>:8080            # outside     → must FAIL
+curl -I http://<vps-ip>:8081            # outside     → must FAIL
 ```
 
 That last one failing is the point: the app is only reachable through

@@ -29,7 +29,8 @@ services:
     ports:
       # Localhost only. CyberPanel/OpenLiteSpeed owns 80 and 443 and proxies
       # here; this port must never be reachable from the internet.
-      - "127.0.0.1:8080:80"
+      # 8080 is taken by another application on this box.
+      - "127.0.0.1:8081:80"
 
   horizon:
     <<: *app
