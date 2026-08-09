@@ -15,6 +15,12 @@ export default defineConfig({
                 bunny('Instrument Sans', {
                     weights: [400, 500, 600],
                 }),
+                // Headings and the subtitles that sit under them. Weights
+                // match what the UI actually asks for — 400 for subtitles,
+                // 500/600/700 for headings — so nothing is synthesised.
+                bunny('Playfair Display', {
+                    weights: [400, 500, 600, 700],
+                }),
             ],
         }),
         inertia(),
