@@ -7,6 +7,9 @@ use App\Http\Controllers\Invoices\InvoiceController;
 use App\Http\Controllers\Payments\BankController;
 use App\Http\Controllers\Payments\PaymentController;
 use App\Http\Controllers\Products\ProductController;
+use App\Http\Controllers\RawMaterials\MaterialPurchaseController;
+use App\Http\Controllers\RawMaterials\RawMaterialController;
+use App\Http\Controllers\RawMaterials\StockLevelController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +41,21 @@ Route::prefix('{current_team}')
         Route::post('products', [ProductController::class, 'store'])->name('products.store');
         Route::get('products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
         Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
+
+        // Declared before the `{material}` routes so `raw-materials/purchases`
+        // can never be read as a material slug.
+        Route::get('raw-materials/purchases', [MaterialPurchaseController::class, 'index'])->name('purchases.index');
+        Route::get('raw-materials/purchases/create', [MaterialPurchaseController::class, 'create'])->name('purchases.create');
+        Route::post('raw-materials/purchases', [MaterialPurchaseController::class, 'store'])->name('purchases.store');
+        Route::get('raw-materials/purchases/{purchase}', [MaterialPurchaseController::class, 'show'])->name('purchases.show');
+
+        Route::get('raw-materials/stock-levels', [StockLevelController::class, 'index'])->name('stock-levels.index');
+
+        Route::get('raw-materials', [RawMaterialController::class, 'index'])->name('materials.index');
+        Route::get('raw-materials/create', [RawMaterialController::class, 'create'])->name('materials.create');
+        Route::post('raw-materials', [RawMaterialController::class, 'store'])->name('materials.store');
+        Route::get('raw-materials/{material}/edit', [RawMaterialController::class, 'edit'])->name('materials.edit');
+        Route::put('raw-materials/{material}', [RawMaterialController::class, 'update'])->name('materials.update');
 
         Route::get('distributors', [DistributorController::class, 'index'])->name('distributors.index');
         Route::get('distributors/create', [DistributorController::class, 'create'])->name('distributors.create');

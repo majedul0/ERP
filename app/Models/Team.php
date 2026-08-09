@@ -135,6 +135,22 @@ class Team extends Model
     }
 
     /**
+     * @return HasMany<RawMaterial, $this>
+     */
+    public function rawMaterials(): HasMany
+    {
+        return $this->hasMany(RawMaterial::class);
+    }
+
+    /**
+     * @return HasMany<MaterialPurchase, $this>
+     */
+    public function materialPurchases(): HasMany
+    {
+        return $this->hasMany(MaterialPurchase::class);
+    }
+
+    /**
      * @return HasMany<Invoice, $this>
      */
     public function invoices(): HasMany

@@ -8,11 +8,14 @@ import {
     create as newInvoice,
     index as invoicesIndex,
 } from '@/routes/invoices';
+import { index as materialsIndex } from '@/routes/materials';
 import { index as paymentsIndex } from '@/routes/payments';
 import {
     index as productsIndex,
     create as newProduct,
 } from '@/routes/products';
+import { index as purchasesIndex } from '@/routes/purchases';
+import { index as stockLevelsIndex } from '@/routes/stock-levels';
 
 /**
  * A top-level nav entry, or one row inside a dropdown.
@@ -58,9 +61,9 @@ export function companyNavItems(teamSlug: string | null): CompanyNavItem[] {
         {
             title: 'Raw Materials',
             items: [
-                { title: 'All Materials' },
-                { title: 'Purchases' },
-                { title: 'Stock Levels' },
+                { title: 'All Materials', href: materialsIndex(teamSlug).url },
+                { title: 'Purchases', href: purchasesIndex(teamSlug).url },
+                { title: 'Stock Levels', href: stockLevelsIndex(teamSlug).url },
             ],
         },
         { title: 'Distributors', href: distributorsIndex(teamSlug).url },
