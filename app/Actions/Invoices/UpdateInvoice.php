@@ -49,6 +49,7 @@ class UpdateInvoice
      *     scheme_description?: string|null,
      *     scheme_amount?: int|null,
      *     previous_dues?: int|null,
+     *     hide_previous_dues?: bool,
      *     items: list<array{product_id: int, carton_quantity?: int, total_quantity: int, unit_price?: int|null, discount?: int|null, remarks?: string|null}>
      * }  $data
      */
@@ -86,11 +87,14 @@ class UpdateInvoice
                 'scheme_amount' => Money::fromInput($data['scheme_amount'] ?? 0),
                 'invoice_total' => $invoiceTotal,
                 'discount_total' => $discountTotal,
+                'hide_previous_dues' => (bool) ($data['hide_previous_dues'] ?? false),
 
-                // Cleared before the replay so the account can say what the
-                // opening figure would be on its own; re-applied below only if
-                // the user really did type something else.
-                'previous_dues_override' => null,
+                // Print-only, like hiding: submitted means "print this figure",
+                // absent means "print what the account says". Neither reaches
+                // the balance.
+                'previous_dues_override' => isset($data['previous_dues'])
+                    ? (int) $data['previous_dues']
+                    : null,
             ]);
 
             $invoice->items()->delete();
@@ -109,45 +113,13 @@ class UpdateInvoice
 
             // previous_dues and total_amount are written by the replay, not
             // here — they belong to the account, not to this invoice alone.
+            // The replay reads the override set above and prints accordingly.
             foreach ($distributors as $distributor) {
                 $this->recalculateBalance->handle($distributor);
             }
 
-            $this->applyPreviousDuesOverride($invoice, $data, $distributors);
-
             return $invoice->refresh();
         });
-    }
-
-    /**
-     * Keep a hand-typed opening balance, or drop one that is no longer needed.
-     *
-     * The replay above has just written what the account says the opening
-     * figure should be. If the user submitted that same number — including by
-     * leaving the field untouched — there is nothing to override and the
-     * invoice goes back to following the account. Anything else is pinned, and
-     * the account is replayed again so the difference shows on the statement.
-     *
-     * @param  array<string, mixed>  $data
-     * @param  array<int, Distributor>  $distributors
-     */
-    private function applyPreviousDuesOverride(Invoice $invoice, array $data, array $distributors): void
-    {
-        if (! isset($data['previous_dues'])) {
-            return;
-        }
-
-        $submitted = (int) $data['previous_dues'];
-
-        if ($submitted === $invoice->refresh()->previous_dues) {
-            return;
-        }
-
-        $invoice->update(['previous_dues_override' => $submitted]);
-
-        foreach ($distributors as $distributor) {
-            $this->recalculateBalance->handle($distributor);
-        }
     }
 
     /**
