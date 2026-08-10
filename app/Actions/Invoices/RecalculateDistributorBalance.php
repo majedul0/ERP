@@ -40,13 +40,26 @@ class RecalculateDistributorBalance
             if ($entry->type === 'invoice') {
                 $invoice = $invoices->get($entry->id);
 
-                // Only write rows that actually moved, so replaying an account
-                // that is already correct costs nothing.
-                if ($invoice && ($invoice->previous_dues !== $balance || $invoice->total_amount !== $entry->balanceAfter)) {
-                    $invoice->update([
-                        'previous_dues' => $balance,
-                        'total_amount' => $entry->balanceAfter,
-                    ]);
+                if ($invoice) {
+                    /*
+                     * `previous_dues` is what the account said before this
+                     * invoice — always, regardless of anything typed on the
+                     * form. `total_amount` is what the invoice *prints*, so it
+                     * uses the typed figure when there is one. The two differ
+                     * only on an invoice someone chose to present differently,
+                     * and the balance below never sees the difference.
+                     */
+                    $printedDues = $invoice->previous_dues_override ?? $balance;
+                    $total = $printedDues + $entry->debit;
+
+                    // Only write rows that actually moved, so replaying an
+                    // account that is already correct costs nothing.
+                    if ($invoice->previous_dues !== $balance || $invoice->total_amount !== $total) {
+                        $invoice->update([
+                            'previous_dues' => $balance,
+                            'total_amount' => $total,
+                        ]);
+                    }
                 }
             }
 
