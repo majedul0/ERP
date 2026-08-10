@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Distributors;
 
+use App\Actions\Distributors\DeleteDistributor;
 use App\Concerns\ResolvesCurrentTeam;
 use App\Data\LedgerEntry;
 use App\Http\Controllers\Controller;
@@ -78,6 +79,68 @@ class DistributorController extends Controller
         $team->distributors()->create($request->validated());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Distributor added.')]);
+
+        return to_route('distributors.index', ['current_team' => $team->slug]);
+    }
+
+    /**
+     * Show the edit form.
+     *
+     * See InvoiceController::show() for why `$current_team` must be declared.
+     */
+    public function edit(Request $request, string $current_team, Distributor $distributor): Response
+    {
+        $team = $this->currentTeam($request);
+
+        abort_unless($distributor->team_id === $team->id, 404);
+
+        return Inertia::render('company/distributors/edit', [
+            'distributor' => InvoicePresenter::distributor($distributor),
+        ]);
+    }
+
+    /**
+     * Save changes to who the distributor is.
+     *
+     * Contact details only. The balance is never edited here — it is the
+     * result of replaying their invoices and payments, and a figure typed over
+     * it would disagree with the statement on the very next screen.
+     */
+    public function update(
+        SaveDistributorRequest $request,
+        string $current_team,
+        Distributor $distributor,
+    ): RedirectResponse {
+        $team = $this->currentTeam($request);
+
+        abort_unless($distributor->team_id === $team->id, 404);
+
+        $distributor->update($request->validated());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Distributor updated.')]);
+
+        return to_route('distributors.show', [
+            'current_team' => $team->slug,
+            'distributor' => $distributor->id,
+        ]);
+    }
+
+    /**
+     * Remove a distributor who never traded.
+     */
+    public function destroy(
+        Request $request,
+        string $current_team,
+        Distributor $distributor,
+        DeleteDistributor $deleteDistributor,
+    ): RedirectResponse {
+        $team = $this->currentTeam($request);
+
+        abort_unless($distributor->team_id === $team->id, 404);
+
+        $deleteDistributor->handle($distributor);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Distributor deleted.')]);
 
         return to_route('distributors.index', ['current_team' => $team->slug]);
     }
