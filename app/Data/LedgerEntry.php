@@ -36,7 +36,10 @@ final readonly class LedgerEntry
         return [
             'type' => $this->type,
             'id' => $this->id,
-            'occurredOn' => $this->occurredOn->toIso8601String(),
+            // A ledger line is dated, not timed: the walk orders by document
+            // date, and an invoice and a payment on the same day are separated
+            // by rule, not by clock. See DistributorLedger.
+            'occurredOn' => $this->occurredOn->toDateString(),
             'reference' => $this->reference,
             'description' => $this->description,
             'debit' => $this->debit,
