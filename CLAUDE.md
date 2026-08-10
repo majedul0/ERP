@@ -167,10 +167,16 @@ Concurrency, because several staff at one company sell at the same time:
 
 The running account is the other invariant. A distributor's ledger is invoices (charges) and
 payments (credits) interleaved — `App\Support\DistributorLedger`, ordered by document date,
-then invoices before payments on a shared day, then id. That single walk does two jobs: the
+then by `created_at` (when it was entered), with invoice-before-payment and id only breaking a
+same-second tie. Entry time is the tie-breaker because forcing invoices first reordered the
+common case of an advance paid and then invoiced against the same day. That single walk does two jobs: the
 statement screen renders it, and `RecalculateDistributorBalance` writes it back onto each
 invoice's `previous_dues`/`total_amount` and onto `distributors.balance`. They cannot
 disagree, because they are the same code.
+
+Changing how the ledger orders or values anything makes every stored figure stale until that
+distributor is next touched. `php artisan app:recalculate-balances` replays every account; it
+recomputes from invoices and payments and never modifies them, so it is safe to re-run.
 
 Each invoice storing the balance before and after it makes it a statement you can hand over —
 and means **any change invalidates every later line for that distributor**. So editing an
@@ -184,13 +190,21 @@ Payments are against the account, not against one invoice, which is how the trad
 note printed beside an invoice's totals is derived: the payments received after that invoice
 and before the next one to the same distributor.
 
-**Previous Dues is editable on the invoice form.** A figure typed there is stored in
-`invoices.previous_dues_override` and the replay restarts the account from it; leaving the
-field alone stores null, so the invoice keeps following the account. Nothing is deleted — the
-gap between what the account said and what was typed becomes its own `adjustment` line in the
-ledger, so the statement still adds up top to bottom. `UpdateInvoice` clears the override,
-replays, and re-applies it only if the submitted figure still differs, which is how an
-override gets removed.
+**The account is a plain running total and nothing on the invoice form alters it.** Balance,
+plus what each invoice charges, less what each payment settles — full stop.
+
+Two invoice fields change only what the paper says:
+
+- `previous_dues_override` — a figure typed into Previous Dues. It is printed in place of the
+  account's figure and folded into `total_amount`; `previous_dues` still records what the
+  account actually said. Requires an explicit `previous_dues_override: true` in the request,
+  so a client holding a stale figure cannot set one by accident — that bug repeatedly rewrote
+  balances and wiped out advances.
+- `hide_previous_dues` — print the invoice with no dues line at all, totalling the goods alone.
+
+Neither reaches `DistributorLedger`, so the statement and the balance are identical whatever
+was printed, and there is no `adjustment` line. Submitting without the opt-in clears the
+override, which is how one gets removed.
 
 Products are editable (`UpdateProduct`). Repricing only affects future invoices: invoice items
 copy name, SKU and unit price at the moment of sale, and stock entered on the form is an
@@ -265,10 +279,17 @@ Fortify response contract needs the same treatment.
 - Layouts are assigned centrally in `resources/js/app.tsx` by page-name prefix
   (`auth/*` → AuthLayout, `settings/*` and `teams/*` → CompanyLayout + SettingsLayout,
   `dashboard` and `company/*` → CompanyLayout, else AppLayout). Pages do not import their own
-  layout. `CompanyLayout` is the tenant shell — ocean top nav, no sidebar; `AppLayout` is the
+  layout. `CompanyLayout` is the tenant shell — coffee top nav, no sidebar; `AppLayout` is the
   starter kit's sidebar shell and is now only the fallback.
 - `components/ui/*` is shadcn/ui (see `components.json`); everything else in `components/` is
   app-specific. Tailwind v4 via the Vite plugin — no `tailwind.config.js`.
+- The brand palette is **`coffee-50` … `coffee-900` plus `gold-100` … `gold-600`**, defined once
+  in `resources/css/app.css`. Every surface reaches for those tokens rather than a raw hex, so a
+  rebrand is those values and nothing else. Gold is for emphasis only — none of its steps pass
+  contrast as text on white.
+- Dates: `sold_at` is a **calendar date with no time of day**, so render it with `formatSaleDate`.
+  `formatSaleDateTime` is only ever given a real timestamp such as `created_at`. `APP_TIMEZONE`
+  must be set to the business's timezone — `today()` decides which sales reach the dashboard.
 - React Compiler is enabled (`babel-plugin-react-compiler`), so avoid manual memoization.
 - Prettier: 4-space indent, single quotes, 80 cols, Tailwind class sorting. Run
   `npm run format` before `format:check` gates you.
