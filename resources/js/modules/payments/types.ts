@@ -8,8 +8,20 @@ export type Bank = BankOption & {
     paymentsCount: number;
 };
 
+/** A payment as the edit form needs it. */
+export type PaymentDetail = {
+    id: number;
+    distributorId: number;
+    bankId: number | null;
+    /** `YYYY-MM-DD`. */
+    paidOn: string;
+    amount: number;
+    comment: string | null;
+};
+
 export type PaymentRow = {
     id: number;
+    /** `YYYY-MM-DD`. A payment is booked on a day, not at a moment. */
     paidOn: string;
     distributorName: string;
     distributorUrl: string;
@@ -21,6 +33,7 @@ export type PaymentRow = {
 /** A payment shown beside an invoice's totals. */
 export type InvoicePayment = {
     id: number;
+    /** `YYYY-MM-DD`. A payment is booked on a day, not at a moment. */
     paidOn: string;
     bankName: string | null;
     amount: number;
@@ -35,6 +48,7 @@ export type InvoicePayment = {
 export type StatementEntry = {
     type: 'invoice' | 'payment';
     id: number;
+    /** `YYYY-MM-DD`. Ledger lines are dated, not timed. */
     occurredOn: string;
     reference: string;
     description: string;

@@ -5,7 +5,7 @@
  */
 export { default as CompanyHeader } from './components/company-header';
 export { default as CompanyLogo } from './components/company-logo';
-export { default as WaveBackdrop } from './components/wave-backdrop';
+export { default as StarBackdrop } from './components/star-backdrop';
 export { useCompanyBrand } from './hooks/use-company-brand';
 export { default as CompanyLayout } from './layouts/company-layout';
 export { companyNavItems, companyQuickActions } from './nav-items';

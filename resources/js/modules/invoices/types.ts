@@ -71,7 +71,16 @@ export type InvoiceDetail = {
     schemeAmount: number;
     invoiceTotal: number;
     discountTotal: number;
+    /** What this invoice prints as Previous Dues. */
     previousDues: number;
+    /** What the account said before this sale, whatever the invoice prints. */
+    accountPreviousDues: number;
+    /** The typed print-only figure, or null when the invoice shows the account. */
+    previousDuesOverride: number | null;
+    /** Print this one as a clean bill, with no running account on it. */
+    hidePreviousDues: boolean;
+    /** What this invoice alone comes to, before any previous dues. */
+    netAmount: number;
     totalAmount: number;
     createdBy: string | null;
     /** Money received while this invoice was the outstanding one. */

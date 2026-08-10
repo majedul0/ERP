@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+﻿import { Head, Link, usePage } from '@inertiajs/react';
 import RawMaterialController from '@/actions/App/Http/Controllers/RawMaterials/RawMaterialController';
 import { Button } from '@/components/ui/button';
 import { MaterialForm } from '@/modules/raw-materials';
@@ -21,7 +21,7 @@ export default function EditMaterial({
 
             <div className="mx-auto w-full max-w-xl">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h1 className="text-2xl font-bold text-ocean-900">
+                    <h1 className="text-2xl font-bold text-coffee-900">
                         Update {material.name}
                     </h1>
                     <Button asChild variant="outline">

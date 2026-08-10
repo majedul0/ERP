@@ -15,10 +15,30 @@ use App\Models\Payment;
  * `RecalculateDistributorBalance` writes the same walk back onto the invoices
  * — so a statement can never disagree with the dues printed on an invoice.
  *
- * Ordering is by **document date**, then invoices before payments on the same
- * day, then by id. Charging before settling on a shared day is the convention
- * a running account expects: a payment made the day an invoice is raised
- * settles that invoice rather than appearing to precede it.
+ * Ordering is by **document date**, then by when the record was actually
+ * entered, then by type and id to break a genuine tie.
+ *
+ * Entry time is the tie-breaker because on a shared day it is the only honest
+ * evidence of what happened first. Forcing invoices ahead of payments — the
+ * previous rule — reads correctly when a distributor settles the day's invoice,
+ * but silently reorders the opposite and far more common case: money paid in
+ * advance, then goods invoiced against it the same day. That showed an advance
+ * arriving after the invoices it had already covered, and every invoice in
+ * between carried the wrong figure forward.
+ *
+ * A backdated document still sorts by its own date, which is the point of
+ * having a date separate from `created_at`.
+ *
+ * The account is a plain running total: balance, plus what each invoice
+ * charges, less what each payment settles. Nothing typed on an invoice form
+ * alters it — see the loop below.
+ *
+ * Timestamps are stored to the second, so two records entered within the same
+ * second tie. That tie falls back to invoice-before-payment and then id, which
+ * is stable rather than arbitrary — the account always renders the same way
+ * twice. Real entry is minutes apart, so the fallback is a formality; if it
+ * ever stops being one, the fix is a monotonic ordering column, not a finer
+ * guess here.
  */
 final class DistributorLedger
 {
@@ -49,6 +69,7 @@ final class DistributorLedger
         foreach ($invoices as $invoice) {
             $rows[] = [
                 'sortDate' => $invoice->sold_at->format('Y-m-d'),
+                'sortEnteredAt' => $invoice->created_at?->format('Y-m-d H:i:s.u') ?? '',
                 'sortGroup' => 0,
                 'sortId' => $invoice->id,
                 'type' => 'invoice',
@@ -65,13 +86,13 @@ final class DistributorLedger
                     ? $invoice->invoice_total - $invoice->discount_total - $invoice->scheme_amount
                     : 0,
                 'credit' => 0,
-                'override' => $invoice->previous_dues_override,
             ];
         }
 
         foreach ($payments as $payment) {
             $rows[] = [
                 'sortDate' => $payment->paid_on->format('Y-m-d'),
+                'sortEnteredAt' => $payment->created_at?->format('Y-m-d H:i:s.u') ?? '',
                 'sortGroup' => 1,
                 'sortId' => $payment->id,
                 'type' => 'payment',
@@ -83,42 +104,29 @@ final class DistributorLedger
                 'description' => $payment->comment ?: 'Payment received',
                 'debit' => 0,
                 'credit' => $payment->amount,
-                'override' => null,
             ];
         }
 
-        usort($rows, fn (array $a, array $b) => [$a['sortDate'], $a['sortGroup'], $a['sortId']]
-            <=> [$b['sortDate'], $b['sortGroup'], $b['sortId']]);
+        // Group and id only break a tie between two records entered in the same
+        // microsecond, which keeps the order stable rather than arbitrary.
+        usort($rows, fn (array $a, array $b) => [$a['sortDate'], $a['sortEnteredAt'], $a['sortGroup'], $a['sortId']]
+            <=> [$b['sortDate'], $b['sortEnteredAt'], $b['sortGroup'], $b['sortId']]);
 
         $balance = 0;
         $entries = [];
 
         foreach ($rows as $row) {
             /*
-             * An invoice whose opening balance was typed by hand restarts the
-             * account from that figure. The gap between what the account said
-             * and what was entered becomes its own visible line, so the
-             * statement still adds up top to bottom instead of appearing to
-             * jump. Nothing is discarded: every invoice and payment above it
-             * stays exactly where it was.
+             * A plain running total, and nothing else: each invoice adds what
+             * it charges, each payment takes off what was paid.
+             *
+             * A figure typed into Previous Dues on an invoice deliberately does
+             * not appear here. That field decides what one sheet of paper says;
+             * it is not a restatement of the account. Letting it restart the
+             * running balance meant a number entered for a customer's benefit
+             * silently rewrote what they owed, and an accidental one wiped out
+             * an advance they had actually paid.
              */
-            if ($row['override'] !== null && $row['override'] !== $balance) {
-                $difference = $row['override'] - $balance;
-
-                $entries[] = new LedgerEntry(
-                    type: 'adjustment',
-                    id: $row['id'],
-                    occurredOn: $row['occurredOn'],
-                    reference: 'Adjustment',
-                    description: 'Opening balance set on '.$row['reference'],
-                    debit: max($difference, 0),
-                    credit: max(-$difference, 0),
-                    balanceAfter: $row['override'],
-                );
-
-                $balance = $row['override'];
-            }
-
             $balance = $balance + $row['debit'] - $row['credit'];
 
             $entries[] = new LedgerEntry(

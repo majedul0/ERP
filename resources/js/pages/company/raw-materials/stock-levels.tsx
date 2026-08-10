@@ -8,8 +8,8 @@ import { edit } from '@/routes/materials';
 import { create as newPurchase } from '@/routes/purchases';
 
 const headCell =
-    'bg-ocean-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
-const bodyCell = 'px-4 py-3 whitespace-nowrap text-ocean-900';
+    'bg-coffee-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
+const bodyCell = 'px-4 py-3 whitespace-nowrap text-coffee-900';
 
 function SummaryCard({
     label,
@@ -21,14 +21,14 @@ function SummaryCard({
     tone?: 'plain' | 'warning' | 'danger';
 }) {
     const toneClasses = {
-        plain: 'text-ocean-900',
+        plain: 'text-coffee-900',
         warning: 'text-amber-700',
         danger: 'text-red-700',
     }[tone];
 
     return (
-        <div className="rounded-lg border border-ocean-100 bg-white p-4 shadow-sm">
-            <p className="text-xs font-semibold tracking-wide text-ocean-800/60 uppercase">
+        <div className="rounded-lg border border-coffee-100 bg-white p-4 shadow-sm">
+            <p className="text-xs font-semibold tracking-wide text-coffee-800/60 uppercase">
                 {label}
             </p>
             <p
@@ -56,10 +56,10 @@ export default function StockLevels({
             <Head title="Stock Levels" />
 
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <h1 className="text-xl font-bold text-ocean-900">
+                <h1 className="text-xl font-bold text-coffee-900">
                     Stock Levels
                 </h1>
-                <Button asChild className="bg-ocean-600 hover:bg-ocean-700">
+                <Button asChild className="bg-coffee-600 hover:bg-coffee-700">
                     <Link href={newPurchase(teamSlug)}>+ Record Purchase</Link>
                 </Button>
             </div>
@@ -88,7 +88,7 @@ export default function StockLevels({
                 />
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-ocean-100 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-lg border border-coffee-100 bg-white shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[52rem] text-sm">
                         <thead>
@@ -112,12 +112,12 @@ export default function StockLevels({
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-ocean-100">
+                        <tbody className="divide-y divide-coffee-100">
                             {levels.length === 0 && (
                                 <tr>
                                     <td
                                         colSpan={7}
-                                        className="px-4 py-10 text-center text-ocean-800/60"
+                                        className="px-4 py-10 text-center text-coffee-800/60"
                                     >
                                         No raw materials registered yet.
                                     </td>
@@ -130,7 +130,7 @@ export default function StockLevels({
                                     className={
                                         level.isLow
                                             ? 'bg-amber-50/60'
-                                            : 'transition-colors hover:bg-ocean-50/60'
+                                            : 'transition-colors hover:bg-coffee-50/60'
                                     }
                                 >
                                     <td className={`${bodyCell} font-medium`}>
@@ -174,7 +174,7 @@ export default function StockLevels({
                                                 current_team: teamSlug,
                                                 material: level.id,
                                             })}
-                                            className="text-ocean-700 underline underline-offset-4 hover:text-ocean-900"
+                                            className="text-coffee-700 underline underline-offset-4 hover:text-coffee-900"
                                         >
                                             Recount
                                         </Link>

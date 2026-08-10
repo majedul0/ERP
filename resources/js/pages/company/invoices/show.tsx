@@ -1,4 +1,4 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+﻿import { Head, Link, router, usePage } from '@inertiajs/react';
 import { FileSpreadsheet, PencilLine, Printer, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useCompanyBrand } from '@/modules/company';
 import type { DeliveryStatusOption, InvoiceDetail } from '@/modules/invoices';
-import { InvoiceDocument } from '@/modules/invoices';
+import { DeleteInvoiceDialog, InvoiceDocument } from '@/modules/invoices';
 import { challan, edit, excel } from '@/routes/invoices';
 import { update } from '@/routes/invoices/status';
 
@@ -39,7 +39,7 @@ export default function ShowInvoice({ invoice, statuses }: Props) {
 
             {/* Screen-only controls; the print output is the invoice alone. */}
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
-                <h1 className="text-xl font-bold text-ocean-900">
+                <h1 className="text-xl font-bold text-coffee-900">
                     Sales Invoice
                 </h1>
 
@@ -80,6 +80,12 @@ export default function ShowInvoice({ invoice, statuses }: Props) {
                         <Link href={challan(routeArgs)}>Challan</Link>
                     </Button>
 
+                    <DeleteInvoiceDialog
+                        teamSlug={currentTeam?.slug ?? ''}
+                        invoiceId={invoice.id}
+                        invoiceNumber={invoice.invoiceNumber}
+                    />
+
                     {/* A file download, so a plain anchor, not an Inertia visit. */}
                     <Button asChild variant="outline">
                         <a href={excel(routeArgs).url}>
@@ -91,7 +97,7 @@ export default function ShowInvoice({ invoice, statuses }: Props) {
                     <Button
                         type="button"
                         onClick={() => window.print()}
-                        className="bg-ocean-700 hover:bg-ocean-800"
+                        className="bg-coffee-700 hover:bg-coffee-800"
                     >
                         <Printer className="size-4" />
                         Print

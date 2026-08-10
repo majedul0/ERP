@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+﻿import { Head, Link, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { formatAmount, formatMoney } from '@/lib/format';
 import { useCompanyBrand } from '@/modules/company';
@@ -6,8 +6,8 @@ import type { Product } from '@/modules/products';
 import { create, edit } from '@/routes/products';
 
 const headCell =
-    'bg-ocean-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
-const bodyCell = 'px-4 py-3 whitespace-nowrap text-ocean-900';
+    'bg-coffee-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
+const bodyCell = 'px-4 py-3 whitespace-nowrap text-coffee-900';
 
 export default function Products({ products }: { products: Product[] }) {
     const brand = useCompanyBrand();
@@ -18,15 +18,15 @@ export default function Products({ products }: { products: Product[] }) {
             <Head title="Products" />
 
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <h1 className="text-xl font-bold text-ocean-900">Products</h1>
-                <Button asChild className="bg-ocean-600 hover:bg-ocean-700">
+                <h1 className="text-xl font-bold text-coffee-900">Products</h1>
+                <Button asChild className="bg-coffee-600 hover:bg-coffee-700">
                     <Link href={create(currentTeam?.slug ?? '')}>
                         + Add Product
                     </Link>
                 </Button>
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-ocean-100 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-lg border border-coffee-100 bg-white shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[60rem] text-sm">
                         <thead>
@@ -52,12 +52,12 @@ export default function Products({ products }: { products: Product[] }) {
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-ocean-100">
+                        <tbody className="divide-y divide-coffee-100">
                             {products.length === 0 && (
                                 <tr>
                                     <td
                                         colSpan={9}
-                                        className="px-4 py-10 text-center text-ocean-800/60"
+                                        className="px-4 py-10 text-center text-coffee-800/60"
                                     >
                                         No products registered yet.
                                     </td>
@@ -67,7 +67,7 @@ export default function Products({ products }: { products: Product[] }) {
                             {products.map((product) => (
                                 <tr
                                     key={product.id}
-                                    className="transition-colors hover:bg-ocean-50/60"
+                                    className="transition-colors hover:bg-coffee-50/60"
                                 >
                                     <td className={bodyCell}>
                                         {product.photoUrl ? (
@@ -77,7 +77,7 @@ export default function Products({ products }: { products: Product[] }) {
                                                 className="size-10 rounded object-contain"
                                             />
                                         ) : (
-                                            <div className="size-10 rounded bg-ocean-50" />
+                                            <div className="size-10 rounded bg-coffee-50" />
                                         )}
                                     </td>
                                     <td className={`${bodyCell} font-medium`}>
@@ -123,7 +123,7 @@ export default function Products({ products }: { products: Product[] }) {
                                                     currentTeam?.slug ?? '',
                                                 product: product.id,
                                             })}
-                                            className="text-ocean-700 underline underline-offset-4 hover:text-ocean-900"
+                                            className="text-coffee-700 underline underline-offset-4 hover:text-coffee-900"
                                         >
                                             Update
                                         </Link>

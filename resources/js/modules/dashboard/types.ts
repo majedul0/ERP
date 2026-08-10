@@ -25,8 +25,10 @@ export type TodaySale = {
     /** Null until the distributor module exists. */
     distributorUrl: string | null;
     proprietorName: string;
-    /** ISO 8601 timestamp. */
-    saleAt: string;
+    /** The calendar date the sale is booked under, `YYYY-MM-DD`. No time. */
+    saleDate: string;
+    /** ISO 8601 timestamp of when the invoice was written. */
+    createdAt: string | null;
     amount: number;
     deliveryStatus: DeliveryStatus;
     detailUrl: string | null;

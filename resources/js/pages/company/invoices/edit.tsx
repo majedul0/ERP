@@ -1,4 +1,4 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+﻿import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import type {
@@ -42,7 +42,7 @@ export default function EditInvoice({
             <Head title={`Update ${invoice.invoiceNumber}`} />
 
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <h1 className="text-2xl font-bold text-ocean-900">
+                <h1 className="text-2xl font-bold text-coffee-900">
                     Update {invoice.invoiceNumber}
                 </h1>
                 <Button asChild variant="outline">
@@ -50,7 +50,7 @@ export default function EditInvoice({
                 </Button>
             </div>
 
-            <p className="mt-1 font-display text-sm text-ocean-800/60">
+            <p className="mt-1 font-display text-sm text-coffee-800/60">
                 The invoice number stays the same. Stock and the distributor's
                 dues are recalculated when you save, and the challan follows
                 automatically.
@@ -68,7 +68,8 @@ export default function EditInvoice({
                     comment: invoice.comment,
                     schemeDescription: invoice.schemeDescription,
                     schemeAmount: invoice.schemeAmount,
-                    previousDues: invoice.previousDues,
+                    previousDuesOverride: invoice.previousDuesOverride,
+                    hidePreviousDues: invoice.hidePreviousDues,
                     lines: invoice.items.map((item) => ({
                         productId: item.productId,
                         cartonQuantity: item.cartonQuantity,

@@ -6,8 +6,8 @@ import type { MaterialPurchaseSummary } from '@/modules/raw-materials';
 import { create, show } from '@/routes/purchases';
 
 const headCell =
-    'bg-ocean-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
-const bodyCell = 'px-4 py-3 whitespace-nowrap text-ocean-900';
+    'bg-coffee-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
+const bodyCell = 'px-4 py-3 whitespace-nowrap text-coffee-900';
 
 export default function Purchases({
     purchases,
@@ -23,15 +23,15 @@ export default function Purchases({
             <Head title="Material Purchases" />
 
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <h1 className="text-xl font-bold text-ocean-900">
+                <h1 className="text-xl font-bold text-coffee-900">
                     Material Purchases
                 </h1>
-                <Button asChild className="bg-ocean-600 hover:bg-ocean-700">
+                <Button asChild className="bg-coffee-600 hover:bg-coffee-700">
                     <Link href={create(teamSlug)}>+ Record Purchase</Link>
                 </Button>
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-ocean-100 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-lg border border-coffee-100 bg-white shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[44rem] text-sm">
                         <thead>
@@ -50,12 +50,12 @@ export default function Purchases({
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-ocean-100">
+                        <tbody className="divide-y divide-coffee-100">
                             {purchases.length === 0 && (
                                 <tr>
                                     <td
                                         colSpan={6}
-                                        className="px-4 py-10 text-center text-ocean-800/60"
+                                        className="px-4 py-10 text-center text-coffee-800/60"
                                     >
                                         No purchases recorded yet.
                                     </td>
@@ -65,7 +65,7 @@ export default function Purchases({
                             {purchases.map((purchase) => (
                                 <tr
                                     key={purchase.id}
-                                    className="transition-colors hover:bg-ocean-50/60"
+                                    className="transition-colors hover:bg-coffee-50/60"
                                 >
                                     <td className={bodyCell}>
                                         {purchase.purchasedAt}
@@ -95,7 +95,7 @@ export default function Purchases({
                                                 current_team: teamSlug,
                                                 purchase: purchase.id,
                                             })}
-                                            className="text-ocean-700 underline underline-offset-4 hover:text-ocean-900"
+                                            className="text-coffee-700 underline underline-offset-4 hover:text-coffee-900"
                                         >
                                             View
                                         </Link>

@@ -3,11 +3,11 @@ import { Button } from '@/components/ui/button';
 import { formatMoney } from '@/lib/format';
 import { useCompanyBrand } from '@/modules/company';
 import type { DistributorOption } from '@/modules/invoices';
-import { create, show } from '@/routes/distributors';
+import { create, edit, show } from '@/routes/distributors';
 
 const headCell =
-    'bg-ocean-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
-const bodyCell = 'px-4 py-3 whitespace-nowrap text-ocean-900';
+    'bg-coffee-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
+const bodyCell = 'px-4 py-3 whitespace-nowrap text-coffee-900';
 
 export default function Distributors({
     distributors,
@@ -22,17 +22,17 @@ export default function Distributors({
             <Head title="Distributors" />
 
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <h1 className="text-xl font-bold text-ocean-900">
+                <h1 className="text-xl font-bold text-coffee-900">
                     Distributors
                 </h1>
-                <Button asChild className="bg-ocean-600 hover:bg-ocean-700">
+                <Button asChild className="bg-coffee-600 hover:bg-coffee-700">
                     <Link href={create(currentTeam?.slug ?? '')}>
                         + Add Distributor
                     </Link>
                 </Button>
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-ocean-100 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-lg border border-coffee-100 bg-white shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[60rem] text-sm">
                         <thead>
@@ -45,14 +45,17 @@ export default function Distributors({
                                 <th className={`${headCell} text-right`}>
                                     Due
                                 </th>
+                                <th className={headCell}>
+                                    <span className="sr-only">Actions</span>
+                                </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-ocean-100">
+                        <tbody className="divide-y divide-coffee-100">
                             {distributors.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={6}
-                                        className="px-4 py-10 text-center text-ocean-800/60"
+                                        colSpan={7}
+                                        className="px-4 py-10 text-center text-coffee-800/60"
                                     >
                                         No distributors yet.
                                     </td>
@@ -62,7 +65,7 @@ export default function Distributors({
                             {distributors.map((distributor) => (
                                 <tr
                                     key={distributor.id}
-                                    className="transition-colors hover:bg-ocean-50/60"
+                                    className="transition-colors hover:bg-coffee-50/60"
                                 >
                                     <td className={bodyCell}>
                                         {distributor.id}
@@ -74,7 +77,7 @@ export default function Distributors({
                                                     currentTeam?.slug ?? '',
                                                 distributor: distributor.id,
                                             })}
-                                            className="text-ocean-700 underline underline-offset-4 hover:text-ocean-900"
+                                            className="text-coffee-700 underline underline-offset-4 hover:text-coffee-900"
                                         >
                                             {distributor.name}
                                         </Link>
@@ -95,6 +98,18 @@ export default function Distributors({
                                             distributor.balance,
                                             brand.currencySymbol,
                                         )}
+                                    </td>
+                                    <td className={bodyCell}>
+                                        <Link
+                                            href={edit({
+                                                current_team:
+                                                    currentTeam?.slug ?? '',
+                                                distributor: distributor.id,
+                                            })}
+                                            className="text-coffee-700 underline underline-offset-4 hover:text-coffee-900"
+                                        >
+                                            Edit
+                                        </Link>
                                     </td>
                                 </tr>
                             ))}

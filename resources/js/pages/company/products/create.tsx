@@ -1,4 +1,4 @@
-import { Form, Head, usePage } from '@inertiajs/react';
+﻿import { Form, Head, usePage } from '@inertiajs/react';
 import ProductController from '@/actions/App/Http/Controllers/Products/ProductController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -59,7 +59,7 @@ export default function RegisterProduct() {
         <>
             <Head title="Register New Product" />
 
-            <h1 className="mt-2 text-center text-2xl font-bold text-ocean-900">
+            <h1 className="mt-2 text-center text-2xl font-bold text-coffee-900">
                 Register New Product
             </h1>
 
@@ -75,7 +75,7 @@ export default function RegisterProduct() {
                             <div key={field.name} className="grid gap-1.5">
                                 <Label
                                     htmlFor={field.name}
-                                    className="text-ocean-900"
+                                    className="text-coffee-900"
                                 >
                                     {field.label}
                                     {field.required && (
@@ -98,7 +98,7 @@ export default function RegisterProduct() {
                                     }
                                 />
                                 {'hint' in field && !errors[field.name] && (
-                                    <p className="text-xs text-ocean-800/60">
+                                    <p className="text-xs text-coffee-800/60">
                                         {field.hint}
                                     </p>
                                 )}
@@ -107,7 +107,7 @@ export default function RegisterProduct() {
                         ))}
 
                         <div className="grid gap-1.5">
-                            <Label htmlFor="photo" className="text-ocean-900">
+                            <Label htmlFor="photo" className="text-coffee-900">
                                 Photo
                             </Label>
                             <Input
@@ -122,7 +122,7 @@ export default function RegisterProduct() {
                         <Button
                             type="submit"
                             disabled={processing}
-                            className="w-full bg-ocean-600 hover:bg-ocean-700"
+                            className="w-full bg-coffee-600 hover:bg-coffee-700"
                             data-test="add-product-button"
                         >
                             {processing && <Spinner />}

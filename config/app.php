@@ -59,13 +59,14 @@ return [
     | Application Timezone
     |--------------------------------------------------------------------------
     |
-    | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | The timezone the business runs in, not the server's. `today()` decides
+    | which sales land on the dashboard and `Carbon::parse('2026-08-01')`
+    | decides what midnight means, so leaving this on UTC rolls the working day
+    | over at 6am in Dhaka and files the morning's invoices under yesterday.
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'UTC'),
 
     /*
     |--------------------------------------------------------------------------

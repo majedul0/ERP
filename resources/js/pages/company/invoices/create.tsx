@@ -35,10 +35,10 @@ export default function CreateInvoice({
         <>
             <Head title="Create Sales Invoice" />
 
-            <h1 className="mt-2 text-center text-2xl font-bold text-ocean-900">
+            <h1 className="mt-2 text-center text-2xl font-bold text-coffee-900">
                 Create Sales Invoice
             </h1>
-            <p className="mt-1 text-center font-display text-sm text-ocean-800/60">
+            <p className="mt-1 text-center font-display text-sm text-coffee-800/60">
                 Next number: {nextInvoiceNumber} — assigned when you press
                 Create, so simultaneous invoices never share one.
             </p>

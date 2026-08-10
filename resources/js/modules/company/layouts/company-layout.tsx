@@ -1,4 +1,4 @@
-import CompanyHeader from '../components/company-header';
+﻿import CompanyHeader from '../components/company-header';
 import { useCompanyBrand } from '../hooks/use-company-brand';
 
 /**
@@ -13,7 +13,7 @@ export default function CompanyLayout({
     const brand = useCompanyBrand();
 
     return (
-        <div className="flex min-h-screen flex-col bg-ocean-50/40">
+        <div className="flex min-h-screen flex-col bg-coffee-50/40">
             <div className="print:hidden">
                 <CompanyHeader brand={brand} />
             </div>

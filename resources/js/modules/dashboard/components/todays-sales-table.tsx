@@ -1,5 +1,5 @@
-import { Link } from '@inertiajs/react';
-import { formatAmount, formatSaleDateTime } from '@/lib/format';
+﻿import { Link } from '@inertiajs/react';
+import { formatAmount, formatSaleDate, formatSaleDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { DeliveryStatus, TodaySale } from '../types';
 
@@ -7,12 +7,12 @@ const statusStyles: Record<DeliveryStatus, { label: string; dot: string }> = {
     delivered: { label: 'Delivered', dot: 'bg-emerald-500' },
     pending: { label: 'Pending', dot: 'bg-amber-500' },
     cancelled: { label: 'Cancelled', dot: 'bg-red-500' },
-    returned: { label: 'Returned', dot: 'bg-ocean-400' },
+    returned: { label: 'Returned', dot: 'bg-coffee-400' },
 };
 
 const headCell =
-    'sticky top-0 z-10 bg-ocean-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
-const bodyCell = 'px-4 py-3 whitespace-nowrap text-ocean-900';
+    'sticky top-0 z-10 bg-coffee-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
+const bodyCell = 'px-4 py-3 whitespace-nowrap text-coffee-900';
 
 function DeliveryStatusCell({ status }: { status: DeliveryStatus }) {
     const style = statusStyles[status];
@@ -38,9 +38,9 @@ export default function TodaysSalesTable({
 }: Props) {
     return (
         <section className="mt-6">
-            <h2 className="mb-3 text-lg font-bold text-ocean-900">{title}</h2>
+            <h2 className="mb-3 text-lg font-bold text-coffee-900">{title}</h2>
 
-            <div className="overflow-hidden rounded-lg border border-ocean-100 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-lg border border-coffee-100 bg-white shadow-sm">
                 <div className="max-h-[26rem] overflow-auto">
                     <table className="w-full min-w-[64rem] border-collapse text-sm">
                         <thead>
@@ -71,12 +71,12 @@ export default function TodaysSalesTable({
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-ocean-100">
+                        <tbody className="divide-y divide-coffee-100">
                             {sales.length === 0 && (
                                 <tr>
                                     <td
                                         colSpan={7}
-                                        className="px-4 py-10 text-center text-ocean-800/60"
+                                        className="px-4 py-10 text-center text-coffee-800/60"
                                     >
                                         {emptyMessage}
                                     </td>
@@ -86,7 +86,7 @@ export default function TodaysSalesTable({
                             {sales.map((sale) => (
                                 <tr
                                     key={sale.id}
-                                    className="transition-colors hover:bg-ocean-50/60"
+                                    className="transition-colors hover:bg-coffee-50/60"
                                 >
                                     <td className={cn(bodyCell, 'font-medium')}>
                                         {sale.invoiceNumber}
@@ -95,7 +95,7 @@ export default function TodaysSalesTable({
                                         {sale.distributorUrl ? (
                                             <Link
                                                 href={sale.distributorUrl}
-                                                className="font-medium text-ocean-700 underline underline-offset-4 hover:text-ocean-900"
+                                                className="font-medium text-coffee-700 underline underline-offset-4 hover:text-coffee-900"
                                             >
                                                 {sale.distributorName}
                                             </Link>
@@ -109,7 +109,9 @@ export default function TodaysSalesTable({
                                         {sale.proprietorName}
                                     </td>
                                     <td className={bodyCell}>
-                                        {formatSaleDateTime(sale.saleAt)}
+                                        {sale.createdAt
+                                            ? formatSaleDateTime(sale.createdAt)
+                                            : formatSaleDate(sale.saleDate)}
                                     </td>
                                     <td
                                         className={cn(
@@ -128,12 +130,12 @@ export default function TodaysSalesTable({
                                         {sale.detailUrl ? (
                                             <Link
                                                 href={sale.detailUrl}
-                                                className="text-ocean-700 underline underline-offset-4 hover:text-ocean-900"
+                                                className="text-coffee-700 underline underline-offset-4 hover:text-coffee-900"
                                             >
                                                 Detail
                                             </Link>
                                         ) : (
-                                            <span className="text-ocean-800/45">
+                                            <span className="text-coffee-800/45">
                                                 Detail
                                             </span>
                                         )}

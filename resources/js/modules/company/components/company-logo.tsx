@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+﻿import { cn } from '@/lib/utils';
 import type { CompanyBrand } from '../types';
 
 /**
@@ -61,7 +61,7 @@ export default function CompanyLogo({
             <span
                 className={cn(
                     'truncate text-base leading-tight font-bold tracking-tight uppercase',
-                    tone === 'light' ? 'text-white' : 'text-ocean-800',
+                    tone === 'light' ? 'text-white' : 'text-coffee-800',
                 )}
             >
                 {brand.name}

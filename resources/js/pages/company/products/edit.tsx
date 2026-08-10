@@ -1,4 +1,4 @@
-import { Form, Head, Link, usePage } from '@inertiajs/react';
+﻿import { Form, Head, Link, usePage } from '@inertiajs/react';
 import ProductController from '@/actions/App/Http/Controllers/Products/ProductController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -54,7 +54,7 @@ export default function EditProduct({ product }: { product: Product }) {
 
             <div className="mx-auto w-full max-w-xl">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h1 className="text-2xl font-bold text-ocean-900">
+                    <h1 className="text-2xl font-bold text-coffee-900">
                         Update {product.name}
                     </h1>
                     <Button asChild variant="outline">
@@ -76,7 +76,7 @@ export default function EditProduct({ product }: { product: Product }) {
                                 <div key={field.name} className="grid gap-1.5">
                                     <Label
                                         htmlFor={field.name}
-                                        className="text-ocean-900"
+                                        className="text-coffee-900"
                                     >
                                         {field.label}
                                     </Label>
@@ -100,7 +100,7 @@ export default function EditProduct({ product }: { product: Product }) {
                                         )}
                                     />
                                     {'hint' in field && !errors[field.name] && (
-                                        <p className="text-xs text-ocean-800/60">
+                                        <p className="text-xs text-coffee-800/60">
                                             {field.hint}
                                         </p>
                                     )}
@@ -111,7 +111,7 @@ export default function EditProduct({ product }: { product: Product }) {
                             <div className="grid gap-1.5">
                                 <Label
                                     htmlFor="photo"
-                                    className="text-ocean-900"
+                                    className="text-coffee-900"
                                 >
                                     Photo
                                 </Label>
@@ -120,7 +120,7 @@ export default function EditProduct({ product }: { product: Product }) {
                                     <img
                                         src={product.photoUrl}
                                         alt=""
-                                        className="size-20 rounded border border-ocean-100 object-contain"
+                                        className="size-20 rounded border border-coffee-100 object-contain"
                                     />
                                 )}
 
@@ -130,7 +130,7 @@ export default function EditProduct({ product }: { product: Product }) {
                                     type="file"
                                     accept="image/jpeg,image/png,image/webp"
                                 />
-                                <p className="text-xs text-ocean-800/60">
+                                <p className="text-xs text-coffee-800/60">
                                     Leave empty to keep the current photo.
                                 </p>
                                 <InputError message={errors.photo} />
@@ -139,7 +139,7 @@ export default function EditProduct({ product }: { product: Product }) {
                             <Button
                                 type="submit"
                                 disabled={processing}
-                                className="w-full bg-ocean-600 hover:bg-ocean-700"
+                                className="w-full bg-coffee-600 hover:bg-coffee-700"
                                 data-test="update-product-button"
                             >
                                 {processing && <Spinner />}

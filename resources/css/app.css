@@ -70,17 +70,35 @@
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
 
-    /* Company branding. Ocean blue, sampled from the reference dashboard. */
-    --color-ocean-50: #f2f7fa;
-    --color-ocean-100: #e2edf4;
-    --color-ocean-200: #c3dae8;
-    --color-ocean-300: #96bed6;
-    --color-ocean-400: #6b9fc0;
-    --color-ocean-500: #4d84ab;
-    --color-ocean-600: #3f6d92;
-    --color-ocean-700: #365a77;
-    --color-ocean-800: #304c63;
-    --color-ocean-900: #2b4152;
+    /*
+     * Company branding: coffee, with gold for accents, on black and white.
+     *
+     * One scale, defined once. Every surface in the app reaches for
+     * `coffee-*`, so rebranding is these ten values and nothing else — and the
+     * steps are spaced so `coffee-500` on white and white on `coffee-500` both
+     * stay readable, which is what the table headers and buttons rely on.
+     */
+    --color-coffee-50: #faf6f2;
+    --color-coffee-100: #f0e5da;
+    --color-coffee-200: #e0cab4;
+    --color-coffee-300: #c9a888;
+    --color-coffee-400: #ac8460;
+    --color-coffee-500: #8b6244;
+    --color-coffee-600: #6f4d36;
+    --color-coffee-700: #5a3f2d;
+    --color-coffee-800: #4a3427;
+    --color-coffee-900: #33241b;
+
+    /*
+     * Gold. Used for emphasis and highlights only — never as a text colour on
+     * white, where none of these pass contrast.
+     */
+    --color-gold-100: #fbf1d4;
+    --color-gold-200: #f6e0a3;
+    --color-gold-300: #f0cd6c;
+    --color-gold-400: #e8b93c;
+    --color-gold-500: #d19d16;
+    --color-gold-600: #a87c11;
 }
 
 :root {

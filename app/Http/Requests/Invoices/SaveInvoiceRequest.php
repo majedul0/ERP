@@ -41,6 +41,22 @@ class SaveInvoiceRequest extends FormRequest
              */
             'previous_dues' => ['nullable', 'integer', 'min:-999999999', 'max:999999999'],
 
+            /*
+             * The opt-in. `previous_dues` is honoured only when this is true.
+             *
+             * Intent has to be stated, not inferred. Deciding from "the number
+             * differs from the account" meant any client holding a stale figure
+             * — an old bundle, a form opened before a payment landed — silently
+             * pinned an invoice's opening balance and made the ledger replay an
+             * adjustment nobody asked for. A client that does not send this
+             * cannot pin anything, whatever else it sends.
+             */
+            'previous_dues_override' => ['nullable', 'boolean'],
+
+            // Print this invoice without the running account on it. Affects
+            // the paper only — see the migration that added the column.
+            'hide_previous_dues' => ['nullable', 'boolean'],
+
             'items' => ['required', 'array', 'min:1', 'max:200'],
             'items.*.product_id' => [
                 'required',
@@ -71,6 +87,7 @@ class SaveInvoiceRequest extends FormRequest
      *     scheme_description: string|null,
      *     scheme_amount: int,
      *     previous_dues: int|null,
+     *     hide_previous_dues: bool,
      *     items: list<array{product_id: int, carton_quantity: int, total_quantity: int, unit_price: int|null, discount: int, remarks: string|null}>
      * }
      */
@@ -90,9 +107,14 @@ class SaveInvoiceRequest extends FormRequest
                 ? (string) $validated['scheme_description']
                 : null,
             'scheme_amount' => (int) ($validated['scheme_amount'] ?? 0),
-            'previous_dues' => isset($validated['previous_dues'])
-                ? (int) $validated['previous_dues']
-                : null,
+            // Null unless the request explicitly asked to override, so the
+            // actions downstream see "no opening balance was chosen" for every
+            // other case — including a stale client that sent a figure.
+            'previous_dues' => $this->boolean('previous_dues_override')
+                && isset($validated['previous_dues'])
+                    ? (int) $validated['previous_dues']
+                    : null,
+            'hide_previous_dues' => $this->boolean('hide_previous_dues'),
             'items' => array_values(array_map(fn (array $item): array => [
                 'product_id' => (int) $item['product_id'],
                 'carton_quantity' => (int) ($item['carton_quantity'] ?? 0),

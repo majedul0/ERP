@@ -1,7 +1,7 @@
-import { Link } from '@inertiajs/react';
+﻿import { Link } from '@inertiajs/react';
 import { formatClockDate, formatClockTime, formatMoney } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { WaveBackdrop } from '@/modules/company';
+import { StarBackdrop } from '@/modules/company';
 import type { CompanyBrand } from '@/modules/company';
 import { useLiveClock } from '../hooks/use-live-clock';
 import type { DashboardStats } from '../types';
@@ -87,8 +87,8 @@ export default function DashboardHero({
     const money = (amount: number) => formatMoney(amount, brand.currencySymbol);
 
     return (
-        <section className="relative overflow-hidden rounded-2xl bg-ocean-500 shadow-sm">
-            <WaveBackdrop />
+        <section className="relative overflow-hidden rounded-2xl bg-coffee-500 shadow-sm">
+            <StarBackdrop />
 
             <div className="relative flex flex-col gap-7 p-6 lg:p-8">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -113,7 +113,10 @@ export default function DashboardHero({
 
                 <div>
                     <p className="text-sm font-medium text-white/85">Total</p>
-                    <p className="mt-1 text-4xl font-bold text-white lg:text-5xl">
+                    {/* Gold, because it is the one figure on the banner worth
+                        finding at a glance. Everything else stays white so
+                        this reads as emphasis rather than decoration. */}
+                    <p className="mt-1 text-4xl font-bold text-gold-300 lg:text-5xl">
                         {money(stats.total)}
                     </p>
                 </div>

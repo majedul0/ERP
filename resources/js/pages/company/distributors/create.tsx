@@ -1,4 +1,4 @@
-import { Form, Head, usePage } from '@inertiajs/react';
+﻿import { Form, Head, usePage } from '@inertiajs/react';
 import DistributorController from '@/actions/App/Http/Controllers/Distributors/DistributorController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ export default function RegisterDistributor() {
         <>
             <Head title="Register New Distributor" />
 
-            <h1 className="mt-2 text-center text-2xl font-bold text-ocean-900">
+            <h1 className="mt-2 text-center text-2xl font-bold text-coffee-900">
                 Register New Distributor
             </h1>
 
@@ -39,7 +39,7 @@ export default function RegisterDistributor() {
                             <div key={field.name} className="grid gap-1.5">
                                 <Label
                                     htmlFor={field.name}
-                                    className="text-ocean-900"
+                                    className="text-coffee-900"
                                 >
                                     {field.label}
                                     {'required' in field && (
@@ -58,7 +58,7 @@ export default function RegisterDistributor() {
                         <Button
                             type="submit"
                             disabled={processing}
-                            className="w-full bg-ocean-600 hover:bg-ocean-700"
+                            className="w-full bg-coffee-600 hover:bg-coffee-700"
                             data-test="add-distributor-button"
                         >
                             {processing && <Spinner />}

@@ -8,8 +8,8 @@ import { Spinner } from '@/components/ui/spinner';
 import type { Bank } from '@/modules/payments';
 
 const headCell =
-    'bg-ocean-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
-const bodyCell = 'px-4 py-3 whitespace-nowrap text-ocean-900';
+    'bg-coffee-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
+const bodyCell = 'px-4 py-3 whitespace-nowrap text-coffee-900';
 
 export default function Banks({ banks }: { banks: Bank[] }) {
     const { currentTeam } = usePage().props;
@@ -18,15 +18,15 @@ export default function Banks({ banks }: { banks: Bank[] }) {
         <>
             <Head title="Banks" />
 
-            <h1 className="mb-1 text-2xl font-bold text-ocean-900">Banks</h1>
-            <p className="mb-6 font-display text-sm text-ocean-800/60">
+            <h1 className="mb-1 text-2xl font-bold text-coffee-900">Banks</h1>
+            <p className="mb-6 font-display text-sm text-coffee-800/60">
                 The accounts money arrives in. Chosen when recording a payment,
                 so a statement can be traced back to where the cash landed.
             </p>
 
             <div className="grid gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-2">
-                    <div className="overflow-hidden rounded-lg border border-ocean-100 bg-white shadow-sm">
+                    <div className="overflow-hidden rounded-lg border border-coffee-100 bg-white shadow-sm">
                         <table className="w-full text-sm">
                             <thead>
                                 <tr>
@@ -37,12 +37,12 @@ export default function Banks({ banks }: { banks: Bank[] }) {
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-ocean-100">
+                            <tbody className="divide-y divide-coffee-100">
                                 {banks.length === 0 && (
                                     <tr>
                                         <td
                                             colSpan={3}
-                                            className="px-4 py-10 text-center text-ocean-800/60"
+                                            className="px-4 py-10 text-center text-coffee-800/60"
                                         >
                                             No banks yet.
                                         </td>
@@ -71,8 +71,8 @@ export default function Banks({ banks }: { banks: Bank[] }) {
                     </div>
                 </div>
 
-                <div className="rounded-lg border border-ocean-100 bg-white p-5 shadow-sm">
-                    <h2 className="mb-4 text-base font-bold text-ocean-900">
+                <div className="rounded-lg border border-coffee-100 bg-white p-5 shadow-sm">
+                    <h2 className="mb-4 text-base font-bold text-coffee-900">
                         Add a bank
                     </h2>
 
@@ -111,7 +111,7 @@ export default function Banks({ banks }: { banks: Bank[] }) {
                                 <Button
                                     type="submit"
                                     disabled={processing}
-                                    className="w-full bg-ocean-600 hover:bg-ocean-700"
+                                    className="w-full bg-coffee-600 hover:bg-coffee-700"
                                 >
                                     {processing && <Spinner />}
                                     Add

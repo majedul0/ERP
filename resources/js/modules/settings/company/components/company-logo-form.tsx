@@ -1,4 +1,4 @@
-import { router, useForm } from '@inertiajs/react';
+﻿import { router, useForm } from '@inertiajs/react';
 import { ImageUp, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
@@ -175,7 +175,7 @@ export default function CompanyLogoForm({
                     aria-valuemax={100}
                 >
                     <div
-                        className="h-full bg-ocean-500 transition-all"
+                        className="h-full bg-coffee-500 transition-all"
                         style={{ width: `${progress.percentage ?? 0}%` }}
                     />
                 </div>

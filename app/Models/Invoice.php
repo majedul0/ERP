@@ -27,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property int $discount_total
  * @property int $previous_dues
  * @property int|null $previous_dues_override
+ * @property bool $hide_previous_dues
  * @property int $total_amount
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -51,6 +52,7 @@ use Illuminate\Support\Carbon;
     'discount_total',
     'previous_dues',
     'previous_dues_override',
+    'hide_previous_dues',
     'total_amount',
 ])]
 class Invoice extends Model
@@ -97,6 +99,7 @@ class Invoice extends Model
         return [
             'sold_at' => 'datetime',
             'delivery_status' => DeliveryStatus::class,
+            'hide_previous_dues' => 'boolean',
         ];
     }
 }

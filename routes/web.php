@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Distributors\DistributorController;
+use App\Http\Controllers\Distributors\StatementController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Invoices\InvoiceController;
 use App\Http\Controllers\Payments\BankController;
@@ -35,6 +36,7 @@ Route::prefix('{current_team}')
             ->middleware('throttle:30,1')
             ->name('invoices.excel');
         Route::patch('sales/invoices/{invoice}/status', [InvoiceController::class, 'updateStatus'])->name('invoices.status.update');
+        Route::delete('sales/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
 
         Route::get('products', [ProductController::class, 'index'])->name('products.index');
         Route::get('products/create', [ProductController::class, 'create'])->name('products.create');
@@ -61,10 +63,22 @@ Route::prefix('{current_team}')
         Route::get('distributors/create', [DistributorController::class, 'create'])->name('distributors.create');
         Route::post('distributors', [DistributorController::class, 'store'])->name('distributors.store');
         Route::get('distributors/{distributor}', [DistributorController::class, 'show'])->name('distributors.show');
+        Route::get('distributors/{distributor}/statement', [StatementController::class, 'print'])->name('statements.print');
+        // Named `excel`, not `export`: Wayfinder turns the last segment into a
+        // TypeScript export name, and `export` is a reserved word there.
+        Route::get('distributors/{distributor}/statement/excel', [StatementController::class, 'excel'])
+            ->middleware('throttle:30,1')
+            ->name('statements.excel');
+        Route::get('distributors/{distributor}/edit', [DistributorController::class, 'edit'])->name('distributors.edit');
+        Route::put('distributors/{distributor}', [DistributorController::class, 'update'])->name('distributors.update');
+        Route::delete('distributors/{distributor}', [DistributorController::class, 'destroy'])->name('distributors.destroy');
         Route::get('distributors/{distributor}/payments/create', [PaymentController::class, 'create'])->name('payments.create');
 
         Route::get('finance/payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('finance/payments', [PaymentController::class, 'store'])->name('payments.store');
+        Route::get('finance/payments/{payment}/edit', [PaymentController::class, 'edit'])->name('payments.edit');
+        Route::put('finance/payments/{payment}', [PaymentController::class, 'update'])->name('payments.update');
+        Route::delete('finance/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
 
         Route::get('finance/banks', [BankController::class, 'index'])->name('banks.index');
         Route::post('finance/banks', [BankController::class, 'store'])->name('banks.store');

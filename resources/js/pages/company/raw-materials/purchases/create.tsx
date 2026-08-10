@@ -33,7 +33,7 @@ export default function RecordPurchase({
 
             <div className="mx-auto w-full max-w-5xl">
                 <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                    <h1 className="text-2xl font-bold text-ocean-900">
+                    <h1 className="text-2xl font-bold text-coffee-900">
                         Record Purchase
                     </h1>
                     <Button asChild variant="outline">
@@ -42,7 +42,7 @@ export default function RecordPurchase({
                 </div>
 
                 {materials.length === 0 ? (
-                    <p className="rounded-lg border border-ocean-100 bg-white p-8 text-center text-ocean-800/70 shadow-sm">
+                    <p className="rounded-lg border border-coffee-100 bg-white p-8 text-center text-coffee-800/70 shadow-sm">
                         Register a raw material first — a purchase has to be
                         against something.
                     </p>

@@ -3,6 +3,7 @@
  *
  * Import from the barrel (`@/modules/invoices`), not from files inside it.
  */
+export { DeleteInvoiceDialog } from './components/delete-invoice-dialog';
 export { default as DistributorSummary } from './components/distributor-summary';
 export { default as InvoiceDocument } from './components/invoice-document';
 export { default as InvoiceDocumentHeader } from './components/invoice-document-header';

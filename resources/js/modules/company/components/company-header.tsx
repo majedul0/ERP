@@ -1,4 +1,4 @@
-import { Link, router, usePage } from '@inertiajs/react';
+﻿import { Link, router, usePage } from '@inertiajs/react';
 import { ChevronDown, Menu, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,7 +49,7 @@ function TopLevelLink({
                 title="Coming soon"
                 className={cn(
                     triggerBase,
-                    'cursor-not-allowed text-ocean-800/45',
+                    'cursor-not-allowed text-coffee-800/45',
                 )}
             >
                 {item.title}
@@ -64,8 +64,8 @@ function TopLevelLink({
             className={cn(
                 triggerBase,
                 active
-                    ? 'bg-ocean-500 text-white shadow-sm'
-                    : 'text-ocean-800 hover:bg-ocean-50',
+                    ? 'bg-coffee-500 text-white shadow-sm'
+                    : 'text-coffee-800 hover:bg-coffee-50',
             )}
         >
             {item.title}
@@ -79,7 +79,7 @@ function TopLevelMenu({ item }: { item: CompanyNavItem }) {
             <DropdownMenuTrigger
                 className={cn(
                     triggerBase,
-                    'text-ocean-800 hover:bg-ocean-50 data-[state=open]:bg-ocean-50',
+                    'text-coffee-800 hover:bg-coffee-50 data-[state=open]:bg-coffee-50',
                 )}
             >
                 {item.title}
@@ -100,7 +100,7 @@ function TopLevelMenu({ item }: { item: CompanyNavItem }) {
                             className="justify-between"
                         >
                             {child.title}
-                            <span className="rounded-full bg-ocean-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-ocean-600 uppercase">
+                            <span className="rounded-full bg-coffee-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-coffee-600 uppercase">
                                 Soon
                             </span>
                         </DropdownMenuItem>
@@ -124,7 +124,7 @@ export default function CompanyHeader({ brand }: { brand: CompanyBrand }) {
     };
 
     return (
-        <header className="sticky top-0 z-40 border-b border-ocean-100 bg-white">
+        <header className="sticky top-0 z-40 border-b border-coffee-100 bg-white">
             <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center gap-3 px-4 lg:px-6">
                 {/* Mobile navigation */}
                 <Sheet>
@@ -132,14 +132,14 @@ export default function CompanyHeader({ brand }: { brand: CompanyBrand }) {
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="text-ocean-800 lg:hidden"
+                            className="text-coffee-800 lg:hidden"
                             aria-label="Open navigation"
                         >
                             <Menu className="size-5" />
                         </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="w-72 bg-white p-0">
-                        <SheetHeader className="border-b border-ocean-100 px-4 py-3">
+                        <SheetHeader className="border-b border-coffee-100 px-4 py-3">
                             <SheetTitle className="text-left">
                                 <CompanyLogo brand={brand} />
                             </SheetTitle>
@@ -154,21 +154,21 @@ export default function CompanyHeader({ brand }: { brand: CompanyBrand }) {
                                             className={cn(
                                                 'block rounded-lg px-3 py-2 text-sm font-semibold',
                                                 isActive(item, currentUrl)
-                                                    ? 'bg-ocean-500 text-white'
-                                                    : 'text-ocean-800 hover:bg-ocean-50',
+                                                    ? 'bg-coffee-500 text-white'
+                                                    : 'text-coffee-800 hover:bg-coffee-50',
                                             )}
                                         >
                                             {item.title}
                                         </Link>
                                     ) : (
-                                        <span className="block px-3 py-2 text-sm font-semibold text-ocean-800/45">
+                                        <span className="block px-3 py-2 text-sm font-semibold text-coffee-800/45">
                                             {item.title}
                                         </span>
                                     )}
                                     {item.items?.map((child) => (
                                         <span
                                             key={child.title}
-                                            className="block px-6 py-1.5 text-sm text-ocean-800/45"
+                                            className="block px-6 py-1.5 text-sm text-coffee-800/45"
                                         >
                                             {child.title}
                                         </span>
@@ -207,7 +207,7 @@ export default function CompanyHeader({ brand }: { brand: CompanyBrand }) {
                         as="button"
                         onClick={handleLogout}
                         data-test="logout-button"
-                        className="rounded-lg px-3 py-2 text-sm font-semibold text-ocean-800 transition-colors hover:bg-ocean-50"
+                        className="rounded-lg px-3 py-2 text-sm font-semibold text-coffee-800 transition-colors hover:bg-coffee-50"
                     >
                         Logout
                     </Link>
@@ -215,7 +215,7 @@ export default function CompanyHeader({ brand }: { brand: CompanyBrand }) {
                         href={edit()}
                         prefetch
                         aria-label="Settings"
-                        className="flex size-9 items-center justify-center rounded-lg text-ocean-800 transition-colors hover:bg-ocean-50"
+                        className="flex size-9 items-center justify-center rounded-lg text-coffee-800 transition-colors hover:bg-coffee-50"
                     >
                         <Settings className="size-5" />
                     </Link>

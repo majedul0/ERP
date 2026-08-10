@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Invoices;
 
 use App\Actions\Invoices\CreateInvoice;
+use App\Actions\Invoices\DeleteInvoice;
 use App\Actions\Invoices\UpdateDeliveryStatus;
 use App\Actions\Invoices\UpdateInvoice;
 use App\Concerns\ResolvesCurrentTeam;
@@ -342,5 +343,33 @@ class InvoiceController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Invoice updated.')]);
 
         return back();
+    }
+
+    /**
+     * Delete an invoice raised by mistake.
+     *
+     * See DeleteInvoice for why this returns the stock and retires the number
+     * rather than freeing it for reuse.
+     */
+    public function destroy(
+        Request $request,
+        string $current_team,
+        Invoice $invoice,
+        DeleteInvoice $deleteInvoice,
+    ): RedirectResponse {
+        $team = $this->currentTeam($request);
+
+        abort_unless($invoice->team_id === $team->id, 404);
+
+        $number = $invoice->invoice_number;
+
+        $deleteInvoice->handle($invoice);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __(':number deleted. Stock has been returned.', ['number' => $number]),
+        ]);
+
+        return to_route('invoices.index', ['current_team' => $team->slug]);
     }
 }

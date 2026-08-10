@@ -29,7 +29,13 @@ final class InvoicePresenter
             'distributorName' => $invoice->distributor->name,
             'distributorUrl' => null,
             'proprietorName' => $invoice->distributor->proprietor_name ?? '',
-            'saleAt' => $invoice->sold_at->toIso8601String(),
+            // The date the sale is booked under, which is all the form asks
+            // for — it carries no time of day, so nothing here should print
+            // one.
+            'saleDate' => $invoice->sold_at->toDateString(),
+            // When the invoice was actually written. This is the only real
+            // clock reading an invoice has.
+            'createdAt' => $invoice->created_at?->toIso8601String(),
             'amount' => $invoice->total_amount,
             'deliveryStatus' => $invoice->delivery_status->value,
             'detailUrl' => "/{$teamSlug}/sales/invoices/{$invoice->id}",
@@ -46,7 +52,8 @@ final class InvoicePresenter
         return [
             'id' => $invoice->id,
             'invoiceNumber' => $invoice->invoice_number,
-            'soldAt' => $invoice->sold_at->toIso8601String(),
+            'soldAt' => $invoice->sold_at->toDateString(),
+            'createdAt' => $invoice->created_at?->toIso8601String(),
             'deliveryStatus' => $invoice->delivery_status->value,
             'deliveryStatusLabel' => $invoice->delivery_status->label(),
             'comment' => $invoice->comment,
@@ -54,7 +61,35 @@ final class InvoicePresenter
             'schemeAmount' => $invoice->scheme_amount,
             'invoiceTotal' => $invoice->invoice_total,
             'discountTotal' => $invoice->discount_total,
-            'previousDues' => $invoice->previous_dues,
+            /*
+             * What this invoice prints: the typed figure when there is one,
+             * otherwise what the account said before this sale. The account
+             * itself is untouched by the choice — see DistributorLedger.
+             */
+            'previousDues' => $invoice->previous_dues_override ?? $invoice->previous_dues,
+            /** What the account actually said, for the edit form to fall back to. */
+            'accountPreviousDues' => $invoice->previous_dues,
+            /*
+             * Null when this invoice follows the account, a figure when someone
+             * pinned it. The edit form needs the difference: seeding the field
+             * as "edited" whenever it has a value would re-pin every invoice
+             * that was only ever following along.
+             */
+            'previousDuesOverride' => $invoice->previous_dues_override,
+
+            /*
+             * Print this one without the running account on it.
+             *
+             * The figures above are unchanged and the statement still uses
+             * them, so hiding only decides what the paper shows. `netAmount` is
+             * what this invoice alone comes to — the same figure the ledger
+             * charges — and is what the printed total falls back to.
+             */
+            'hidePreviousDues' => $invoice->hide_previous_dues,
+            'netAmount' => $invoice->invoice_total
+                - $invoice->discount_total
+                - $invoice->scheme_amount,
+
             'totalAmount' => $invoice->total_amount,
             'createdBy' => $invoice->creator?->name,
             'payments' => self::paymentsSettling($invoice),
@@ -114,7 +149,10 @@ final class InvoicePresenter
             ->get()
             ->map(fn (Payment $payment) => [
                 'id' => $payment->id,
-                'paidOn' => $payment->paid_on->toIso8601String(),
+                // `paid_on` is a date column — a payment is booked on a day,
+                // not at a moment. Sending a timestamp would invite a
+                // timezone shift onto a figure that has no time in it.
+                'paidOn' => $payment->paid_on->toDateString(),
                 'bankName' => $payment->bank?->name,
                 'amount' => $payment->amount,
                 'comment' => $payment->comment,
@@ -138,7 +176,8 @@ final class InvoicePresenter
         return [
             'id' => $invoice->id,
             'invoiceNumber' => $invoice->invoice_number,
-            'soldAt' => $invoice->sold_at->toIso8601String(),
+            'soldAt' => $invoice->sold_at->toDateString(),
+            'createdAt' => $invoice->created_at?->toIso8601String(),
             'deliveryStatus' => $invoice->delivery_status->value,
             'deliveryStatusLabel' => $invoice->delivery_status->label(),
             'comment' => $invoice->comment,

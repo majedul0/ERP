@@ -6,7 +6,7 @@ import type { InvoiceLineView } from '../hooks/use-invoice-draft';
 import type { InvoiceLineDraft } from '../types';
 
 const headCell =
-    'bg-ocean-500 px-3 py-2.5 text-left text-xs font-bold tracking-wide text-white uppercase';
+    'bg-coffee-500 px-3 py-2.5 text-left text-xs font-bold tracking-wide text-white uppercase';
 const cell = 'px-3 py-3 align-top';
 
 const selectClasses =
@@ -26,7 +26,7 @@ export default function InvoiceLineRows({
     onRemove,
 }: Props) {
     return (
-        <div className="overflow-x-auto rounded-lg border border-ocean-100 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-coffee-100 bg-white">
             <table className="w-full min-w-[68rem] text-sm">
                 <thead>
                     <tr>
@@ -40,7 +40,7 @@ export default function InvoiceLineRows({
                         <th className={headCell}>Remarks</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-ocean-100">
+                <tbody className="divide-y divide-coffee-100">
                     {lines.map((line) => (
                         <tr key={line.key}>
                             <td className={cell}>
@@ -48,7 +48,7 @@ export default function InvoiceLineRows({
                                     type="button"
                                     onClick={() => onRemove(line.key)}
                                     aria-label="Remove line"
-                                    className="flex size-9 items-center justify-center rounded-md border border-ocean-100 text-ocean-800/60 transition-colors hover:bg-red-50 hover:text-red-600"
+                                    className="flex size-9 items-center justify-center rounded-md border border-coffee-100 text-coffee-800/60 transition-colors hover:bg-red-50 hover:text-red-600"
                                 >
                                     <X className="size-4" />
                                 </button>
@@ -90,7 +90,7 @@ export default function InvoiceLineRows({
                                         })
                                     }
                                 />
-                                <p className="mt-1 text-xs font-medium text-ocean-800/60">
+                                <p className="mt-1 text-xs font-medium text-coffee-800/60">
                                     CTN SIZE: {line.product?.cartonSize ?? 0}
                                 </p>
                             </td>
@@ -111,7 +111,7 @@ export default function InvoiceLineRows({
                                     className={
                                         line.stockWarning
                                             ? 'mt-1 text-xs font-semibold text-red-600'
-                                            : 'mt-1 text-xs font-medium text-ocean-800/60'
+                                            : 'mt-1 text-xs font-medium text-coffee-800/60'
                                     }
                                 >
                                     {line.stockWarning ??
@@ -135,7 +135,7 @@ export default function InvoiceLineRows({
                             </td>
 
                             <td className={cell}>
-                                <div className="flex h-9 w-32 items-center rounded-md bg-ocean-50 px-3 text-sm font-medium text-ocean-900 tabular-nums">
+                                <div className="flex h-9 w-32 items-center rounded-md bg-coffee-50 px-3 text-sm font-medium text-coffee-900 tabular-nums">
                                     {formatAmount(line.amount)}
                                 </div>
                             </td>

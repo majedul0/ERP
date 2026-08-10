@@ -1,11 +1,11 @@
 import { Link } from '@inertiajs/react';
-import { formatAmount, formatSaleDateTime } from '@/lib/format';
+import { formatAmount, formatSaleDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { StatementEntry } from '../types';
 
 const headCell =
-    'bg-ocean-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
-const bodyCell = 'px-4 py-3 whitespace-nowrap text-ocean-900';
+    'bg-coffee-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
+const bodyCell = 'px-4 py-3 whitespace-nowrap text-coffee-900';
 
 type Props = {
     entries: StatementEntry[];
@@ -21,7 +21,7 @@ type Props = {
  */
 export default function StatementTable({ entries, invoiceUrl }: Props) {
     return (
-        <div className="overflow-hidden rounded-lg border border-ocean-100 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-lg border border-coffee-100 bg-white shadow-sm">
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[52rem] text-sm">
                     <thead>
@@ -38,12 +38,12 @@ export default function StatementTable({ entries, invoiceUrl }: Props) {
                             </th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-ocean-100">
+                    <tbody className="divide-y divide-coffee-100">
                         {entries.length === 0 && (
                             <tr>
                                 <td
                                     colSpan={6}
-                                    className="px-4 py-10 text-center text-ocean-800/60"
+                                    className="px-4 py-10 text-center text-coffee-800/60"
                                 >
                                     Nothing on this account yet.
                                 </td>
@@ -53,18 +53,16 @@ export default function StatementTable({ entries, invoiceUrl }: Props) {
                         {entries.map((entry) => (
                             <tr
                                 key={`${entry.type}-${entry.id}`}
-                                className="transition-colors hover:bg-ocean-50/60"
+                                className="transition-colors hover:bg-coffee-50/60"
                             >
                                 <td className={bodyCell}>
-                                    {formatSaleDateTime(entry.occurredOn).split(
-                                        ' ',
-                                    )[0] ?? ''}
+                                    {formatSaleDate(entry.occurredOn)}
                                 </td>
                                 <td className={cn(bodyCell, 'font-medium')}>
                                     {entry.type === 'invoice' ? (
                                         <Link
                                             href={invoiceUrl(entry.id)}
-                                            className="text-ocean-700 underline underline-offset-4 hover:text-ocean-900"
+                                            className="text-coffee-700 underline underline-offset-4 hover:text-coffee-900"
                                         >
                                             {entry.reference}
                                         </Link>

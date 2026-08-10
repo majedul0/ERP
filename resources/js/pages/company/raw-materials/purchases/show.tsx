@@ -6,16 +6,16 @@ import type { MaterialPurchase } from '@/modules/raw-materials';
 import { index } from '@/routes/purchases';
 
 const headCell =
-    'bg-ocean-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
-const bodyCell = 'px-4 py-3 whitespace-nowrap text-ocean-900';
+    'bg-coffee-500 px-4 py-3 text-left text-xs font-bold tracking-wide text-white uppercase';
+const bodyCell = 'px-4 py-3 whitespace-nowrap text-coffee-900';
 
 function Detail({ label, value }: { label: string; value: string }) {
     return (
         <div>
-            <dt className="text-xs font-semibold tracking-wide text-ocean-800/60 uppercase">
+            <dt className="text-xs font-semibold tracking-wide text-coffee-800/60 uppercase">
                 {label}
             </dt>
-            <dd className="mt-0.5 text-ocean-900">{value}</dd>
+            <dd className="mt-0.5 text-coffee-900">{value}</dd>
         </div>
     );
 }
@@ -34,7 +34,7 @@ export default function PurchaseDetail({
 
             <div className="mx-auto w-full max-w-4xl">
                 <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                    <h1 className="text-2xl font-bold text-ocean-900">
+                    <h1 className="text-2xl font-bold text-coffee-900">
                         {purchase.supplierName}
                     </h1>
                     <Button asChild variant="outline">
@@ -44,7 +44,7 @@ export default function PurchaseDetail({
                     </Button>
                 </div>
 
-                <dl className="mb-6 grid gap-4 rounded-lg border border-ocean-100 bg-white p-5 text-sm shadow-sm sm:grid-cols-4">
+                <dl className="mb-6 grid gap-4 rounded-lg border border-coffee-100 bg-white p-5 text-sm shadow-sm sm:grid-cols-4">
                     <Detail label="Date" value={purchase.purchasedAt} />
                     <Detail
                         label="Bill No."
@@ -54,7 +54,7 @@ export default function PurchaseDetail({
                     <Detail label="Note" value={purchase.note ?? '—'} />
                 </dl>
 
-                <div className="overflow-hidden rounded-lg border border-ocean-100 bg-white shadow-sm">
+                <div className="overflow-hidden rounded-lg border border-coffee-100 bg-white shadow-sm">
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[40rem] text-sm">
                             <thead>
@@ -72,7 +72,7 @@ export default function PurchaseDetail({
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-ocean-100">
+                            <tbody className="divide-y divide-coffee-100">
                                 {purchase.items.map((item) => (
                                     <tr key={item.id}>
                                         <td
@@ -109,7 +109,7 @@ export default function PurchaseDetail({
                                 ))}
                             </tbody>
                             <tfoot>
-                                <tr className="border-t-2 border-ocean-200 bg-ocean-50/60">
+                                <tr className="border-t-2 border-coffee-200 bg-coffee-50/60">
                                     <td
                                         className={`${bodyCell} font-semibold`}
                                         colSpan={4}

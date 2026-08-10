@@ -4,5 +4,6 @@
  *
  * Import from the barrel (`@/modules/payments`), not from files inside it.
  */
+export { DeletePaymentDialog } from './components/delete-payment-dialog';
 export { default as StatementTable } from './components/statement-table';
 export type * from './types';

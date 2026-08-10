@@ -9,9 +9,9 @@ import { useCompanyBrand } from '@/modules/company';
 import type { PurchaseMaterialOption } from '../types';
 
 const selectClasses =
-    'h-9 w-full rounded-md border border-ocean-200 bg-white px-2 text-sm text-ocean-900 shadow-xs focus-visible:border-ocean-400 focus-visible:ring-[3px] focus-visible:ring-ocean-200 focus-visible:outline-none';
+    'h-9 w-full rounded-md border border-coffee-200 bg-white px-2 text-sm text-coffee-900 shadow-xs focus-visible:border-coffee-400 focus-visible:ring-[3px] focus-visible:ring-coffee-200 focus-visible:outline-none';
 const headCell =
-    'bg-ocean-500 px-3 py-2 text-left text-xs font-bold tracking-wide text-white uppercase';
+    'bg-coffee-500 px-3 py-2 text-left text-xs font-bold tracking-wide text-white uppercase';
 const bodyCell = 'px-3 py-2 align-top';
 
 export type PurchaseLinePayload = {
@@ -126,7 +126,7 @@ export function PurchaseForm({
         >
             <div className="grid gap-4 sm:grid-cols-3">
                 <div className="grid gap-1.5">
-                    <Label htmlFor="supplier_name" className="text-ocean-900">
+                    <Label htmlFor="supplier_name" className="text-coffee-900">
                         Supplier<span aria-hidden="true">*</span>
                     </Label>
                     <Input
@@ -141,7 +141,7 @@ export function PurchaseForm({
                 </div>
 
                 <div className="grid gap-1.5">
-                    <Label htmlFor="reference" className="text-ocean-900">
+                    <Label htmlFor="reference" className="text-coffee-900">
                         Bill Number
                     </Label>
                     <Input
@@ -154,7 +154,7 @@ export function PurchaseForm({
                 </div>
 
                 <div className="grid gap-1.5">
-                    <Label htmlFor="purchased_at" className="text-ocean-900">
+                    <Label htmlFor="purchased_at" className="text-coffee-900">
                         Purchase Date<span aria-hidden="true">*</span>
                     </Label>
                     <Input
@@ -168,7 +168,7 @@ export function PurchaseForm({
                 </div>
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-ocean-100 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-lg border border-coffee-100 bg-white shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[48rem] text-sm">
                         <thead>
@@ -185,7 +185,7 @@ export function PurchaseForm({
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-ocean-100">
+                        <tbody className="divide-y divide-coffee-100">
                             {lines.map((line) => {
                                 const material = materials.find(
                                     (candidate) =>
@@ -246,7 +246,7 @@ export function PurchaseForm({
                                         </td>
 
                                         <td
-                                            className={`${bodyCell} whitespace-nowrap text-ocean-800/70 tabular-nums`}
+                                            className={`${bodyCell} whitespace-nowrap text-coffee-800/70 tabular-nums`}
                                         >
                                             {material
                                                 ? `${material.stockQuantity} ${material.unitShort}`
@@ -286,7 +286,7 @@ export function PurchaseForm({
                                         </td>
 
                                         <td
-                                            className={`${bodyCell} text-right font-medium text-ocean-900 tabular-nums`}
+                                            className={`${bodyCell} text-right font-medium text-coffee-900 tabular-nums`}
                                         >
                                             {formatMoney(
                                                 lineTotal(line),
@@ -308,7 +308,7 @@ export function PurchaseForm({
                                                               ),
                                                     )
                                                 }
-                                                className="text-sm text-ocean-700 underline underline-offset-4 hover:text-ocean-900"
+                                                className="text-sm text-coffee-700 underline underline-offset-4 hover:text-coffee-900"
                                             >
                                                 Remove
                                             </button>
@@ -334,13 +334,13 @@ export function PurchaseForm({
                     + Add Line
                 </Button>
 
-                <p className="text-lg font-bold text-ocean-900 tabular-nums">
+                <p className="text-lg font-bold text-coffee-900 tabular-nums">
                     Total: {formatMoney(total, brand.currencySymbol)}
                 </p>
             </div>
 
             <div className="grid gap-1.5">
-                <Label htmlFor="note" className="text-ocean-900">
+                <Label htmlFor="note" className="text-coffee-900">
                     Note
                 </Label>
                 <Input
@@ -355,7 +355,7 @@ export function PurchaseForm({
             <Button
                 type="submit"
                 disabled={processing}
-                className="w-full bg-ocean-600 hover:bg-ocean-700"
+                className="w-full bg-coffee-600 hover:bg-coffee-700"
                 data-test="record-purchase-button"
             >
                 {processing && <Spinner />}

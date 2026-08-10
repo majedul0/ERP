@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { CompanyLogo, useCompanyBrand, WaveBackdrop } from '@/modules/company';
+import { CompanyLogo, useCompanyBrand, StarBackdrop } from '@/modules/company';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 import type { TeamInvitationContext } from '@/types';
@@ -53,8 +53,8 @@ export default function Welcome({
 
             <div className="flex min-h-screen flex-col lg:flex-row">
                 {/* Brand panel */}
-                <div className="relative overflow-hidden bg-ocean-500 px-6 py-10 lg:flex lg:w-[45%] lg:flex-col lg:justify-between lg:px-12 lg:py-14">
-                    <WaveBackdrop />
+                <div className="relative overflow-hidden bg-coffee-500 px-6 py-10 lg:flex lg:w-[45%] lg:flex-col lg:justify-between lg:px-12 lg:py-14">
+                    <StarBackdrop />
 
                     <div className="relative">
                         <CompanyLogo brand={brand} tone="light" />
@@ -99,10 +99,10 @@ export default function Welcome({
                 {/* Login panel */}
                 <div className="flex flex-1 items-center justify-center bg-white px-6 py-12 lg:px-12">
                     <div className="w-full max-w-sm">
-                        <h2 className="text-2xl font-bold text-ocean-900">
+                        <h2 className="text-2xl font-bold text-coffee-900">
                             Log in to your account
                         </h2>
-                        <p className="mt-2 font-display text-sm text-ocean-800/70">
+                        <p className="mt-2 font-display text-sm text-coffee-800/70">
                             Enter your email and password below to continue.
                         </p>
 
@@ -184,7 +184,7 @@ export default function Welcome({
 
                                     <Button
                                         type="submit"
-                                        className="w-full bg-ocean-500 hover:bg-ocean-600"
+                                        className="w-full bg-coffee-500 hover:bg-coffee-600"
                                         tabIndex={4}
                                         disabled={processing}
                                         data-test="login-button"

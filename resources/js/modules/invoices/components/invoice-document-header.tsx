@@ -1,4 +1,4 @@
-import { formatSaleDateTime } from '@/lib/format';
+import { formatSaleDate } from '@/lib/format';
 import { CompanyLogo } from '@/modules/company';
 import type { CompanyBrand } from '@/modules/company';
 import type { DistributorContact } from '../types';
@@ -34,49 +34,49 @@ export default function InvoiceDocumentHeader({
             <header className="flex flex-wrap items-start justify-between gap-4">
                 <CompanyLogo brand={brand} />
 
-                <div className="text-right text-sm text-ocean-800/80">
+                <div className="text-right text-sm text-coffee-800/80">
                     {brand.address && <p>{brand.address}</p>}
                     {brand.phone && <p>{brand.phone}</p>}
                 </div>
             </header>
 
             <div className="mt-8 text-center">
-                <h2 className="text-3xl font-bold text-ocean-900">{title}</h2>
-                <p className="mt-1 font-display font-semibold text-ocean-800">
+                <h2 className="text-3xl font-bold text-coffee-900">{title}</h2>
+                <p className="mt-1 font-display font-semibold text-coffee-800">
                     #{invoiceNumber}
                 </p>
             </div>
 
             <div className="mt-8 flex flex-wrap justify-between gap-6">
                 <div>
-                    <p className="text-sm font-bold text-ocean-900">
+                    <p className="text-sm font-bold text-coffee-900">
                         Distributor
                     </p>
-                    <p className="mt-1 text-lg font-semibold text-ocean-800 underline underline-offset-4">
+                    <p className="mt-1 text-lg font-semibold text-coffee-800 underline underline-offset-4">
                         {distributor.name}
                     </p>
                     {distributor.fullAddress && (
-                        <p className="text-sm text-ocean-800/80">
+                        <p className="text-sm text-coffee-800/80">
                             {distributor.fullAddress}
                         </p>
                     )}
                     {distributor.phone && (
-                        <p className="text-sm text-ocean-800/80">
+                        <p className="text-sm text-coffee-800/80">
                             {distributor.phone}
                         </p>
                     )}
                 </div>
 
-                <div className="text-right text-sm text-ocean-800/80">
+                <div className="text-right text-sm text-coffee-800/80">
                     <p>
-                        <span className="font-bold text-ocean-900">
+                        <span className="font-bold text-coffee-900">
                             Sale Date:
                         </span>{' '}
-                        {formatSaleDateTime(soldAt)}
+                        {formatSaleDate(soldAt)}
                     </p>
                     {meta.map((entry) => (
                         <p key={entry.label} className="mt-1">
-                            <span className="font-bold text-ocean-900">
+                            <span className="font-bold text-coffee-900">
                                 {entry.label}:
                             </span>{' '}
                             {entry.value}

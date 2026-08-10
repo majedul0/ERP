@@ -33,10 +33,10 @@ export default function AddPayment({ distributor, banks }: Props) {
         <>
             <Head title={`Add Payment For ${distributor.name}`} />
 
-            <h1 className="mt-2 text-center text-2xl font-bold text-ocean-900">
+            <h1 className="mt-2 text-center text-2xl font-bold text-coffee-900">
                 Add Payment For {distributor.name}
             </h1>
-            <p className="mt-1 text-center font-display text-sm text-ocean-800/60">
+            <p className="mt-1 text-center font-display text-sm text-coffee-800/60">
                 Currently due:{' '}
                 <span className="font-semibold">
                     {formatMoney(distributor.balance, brand.currencySymbol)}
@@ -57,7 +57,10 @@ export default function AddPayment({ distributor, banks }: Props) {
                         />
 
                         <div className="grid gap-1.5">
-                            <Label htmlFor="paid_on" className="text-ocean-900">
+                            <Label
+                                htmlFor="paid_on"
+                                className="text-coffee-900"
+                            >
                                 Payment date:
                             </Label>
                             <Input
@@ -71,7 +74,10 @@ export default function AddPayment({ distributor, banks }: Props) {
                         </div>
 
                         <div className="grid gap-1.5">
-                            <Label htmlFor="bank_id" className="text-ocean-900">
+                            <Label
+                                htmlFor="bank_id"
+                                className="text-coffee-900"
+                            >
                                 Bank:
                             </Label>
                             <select
@@ -89,7 +95,7 @@ export default function AddPayment({ distributor, banks }: Props) {
                             </select>
                             <InputError message={errors.bank_id} />
                             {banks.length === 0 && (
-                                <p className="text-xs text-ocean-800/60">
+                                <p className="text-xs text-coffee-800/60">
                                     No banks yet —{' '}
                                     <Link
                                         href={banksIndex(
@@ -105,7 +111,7 @@ export default function AddPayment({ distributor, banks }: Props) {
                         </div>
 
                         <div className="grid gap-1.5">
-                            <Label htmlFor="amount" className="text-ocean-900">
+                            <Label htmlFor="amount" className="text-coffee-900">
                                 Amount:
                             </Label>
                             <Input
@@ -120,7 +126,10 @@ export default function AddPayment({ distributor, banks }: Props) {
                         </div>
 
                         <div className="grid gap-1.5">
-                            <Label htmlFor="comment" className="text-ocean-900">
+                            <Label
+                                htmlFor="comment"
+                                className="text-coffee-900"
+                            >
                                 Comment:
                             </Label>
                             <Input id="comment" name="comment" />
@@ -130,7 +139,7 @@ export default function AddPayment({ distributor, banks }: Props) {
                         <Button
                             type="submit"
                             disabled={processing}
-                            className="w-full bg-ocean-600 hover:bg-ocean-700"
+                            className="w-full bg-coffee-600 hover:bg-coffee-700"
                             data-test="add-payment-button"
                         >
                             {processing && <Spinner />}

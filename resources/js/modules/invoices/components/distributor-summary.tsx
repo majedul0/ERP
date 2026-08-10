@@ -1,8 +1,8 @@
 import type { DistributorOption } from '../types';
 
 const headCell =
-    'bg-ocean-500 px-4 py-2.5 text-left text-xs font-bold tracking-wide text-white uppercase';
-const bodyCell = 'px-4 py-3 text-ocean-900';
+    'bg-coffee-500 px-4 py-2.5 text-left text-xs font-bold tracking-wide text-white uppercase';
+const bodyCell = 'px-4 py-3 text-coffee-900';
 
 /**
  * The distributor's details, filled in from the chosen distributor rather than
@@ -15,7 +15,7 @@ export default function DistributorSummary({
     distributor: DistributorOption | null;
 }) {
     return (
-        <div className="mt-5 overflow-x-auto rounded-lg border border-ocean-100 bg-white">
+        <div className="mt-5 overflow-x-auto rounded-lg border border-coffee-100 bg-white">
             <table className="w-full min-w-[56rem] text-sm">
                 <thead>
                     <tr>
@@ -55,7 +55,7 @@ export default function DistributorSummary({
                         ) : (
                             <td
                                 colSpan={7}
-                                className="px-4 py-6 text-center text-sm text-ocean-800/50"
+                                className="px-4 py-6 text-center text-sm text-coffee-800/50"
                             >
                                 Choose a distributor to see their details.
                             </td>

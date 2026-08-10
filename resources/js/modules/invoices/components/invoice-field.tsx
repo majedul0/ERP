@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+﻿import type { ReactNode } from 'react';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
@@ -22,12 +22,12 @@ export default function InvoiceField({
 }) {
     return (
         <div className={cn('grid gap-1.5', className)}>
-            <Label htmlFor={htmlFor} className="text-ocean-900">
+            <Label htmlFor={htmlFor} className="text-coffee-900">
                 {label}
             </Label>
             {children}
             {hint && !error && (
-                <p className="text-xs text-ocean-800/60">{hint}</p>
+                <p className="text-xs text-coffee-800/60">{hint}</p>
             )}
             {error && <p className="text-xs text-red-600">{error}</p>}
         </div>

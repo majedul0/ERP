@@ -13,6 +13,16 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
+/**
+ * A figure typed into Previous Dues changes what one invoice prints. It does
+ * not change what the distributor owes.
+ *
+ * The account is a plain running total — balance, plus what each invoice
+ * charges, less what each payment settles. It used to be restated by anything
+ * typed here, which meant a number entered for a customer's benefit silently
+ * rewrote their balance, and an accidental one wiped out an advance they had
+ * actually paid.
+ */
 class PreviousDuesOverrideTest extends TestCase
 {
     use RefreshDatabase;
@@ -39,6 +49,9 @@ class PreviousDuesOverrideTest extends TestCase
         ]);
     }
 
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
     private function create(int $quantity, array $overrides = []): Invoice
     {
         $this->actingAs($this->user)->post(
@@ -58,44 +71,99 @@ class PreviousDuesOverrideTest extends TestCase
         return Invoice::latest('id')->firstOrFail();
     }
 
-    public function test_a_typed_opening_balance_is_used_and_kept()
+    /**
+     * @return array<string, mixed>
+     */
+    private function typed(int $previousDues): array
     {
-        $invoice = $this->create(5, ['previous_dues' => 2500]);
+        // The opt-in a real "Set manually" submission carries. A bare
+        // `previous_dues` is what a stale client sends and must be ignored.
+        return [
+            'previous_dues_override' => true,
+            'previous_dues' => $previousDues,
+        ];
+    }
 
-        $this->assertSame(2500, $invoice->previous_dues);
+    public function test_a_typed_figure_is_what_the_invoice_prints()
+    {
+        $invoice = $this->create(5, $this->typed(2500));
+
         $this->assertSame(2500, $invoice->previous_dues_override);
+
+        // 2500 printed as dues, plus 500 of goods.
         $this->assertSame(3000, $invoice->total_amount);
-        $this->assertSame(3000, $this->distributor->fresh()->balance);
+    }
+
+    public function test_a_typed_figure_does_not_move_the_balance()
+    {
+        $invoice = $this->create(5, $this->typed(2500));
+
+        // 500 of goods, and nothing else. The 2500 was for the paper.
+        $this->assertSame(500, $this->distributor->fresh()->balance);
+        $this->assertSame(0, $invoice->previous_dues);
     }
 
     /**
-     * Leaving the field alone must not pin the invoice — otherwise every
-     * invoice would freeze its opening figure and later corrections would stop
-     * flowing through.
+     * The case that made this print-only: a distributor in credit, handed an
+     * invoice that does not mention it, still keeps the credit.
      */
-    public function test_submitting_the_computed_figure_records_no_override()
+    public function test_an_advance_survives_an_invoice_that_prints_zero_dues()
+    {
+        $this->actingAs($this->user)->post(
+            route('payments.store', ['current_team' => $this->team->slug]),
+            [
+                'distributor_id' => $this->distributor->id,
+                'paid_on' => now()->subDay()->toDateString(),
+                'amount' => 80_000,
+            ],
+        )->assertSessionHasNoErrors();
+
+        $this->create(100, $this->typed(0));
+
+        // 80,000 in credit, less 10,000 of goods.
+        $this->assertSame(-70_000, $this->distributor->fresh()->balance);
+    }
+
+    public function test_each_invoice_takes_its_own_total_off_the_balance()
+    {
+        $this->create(200, $this->typed(0));   // 20,000
+        $this->create(100, $this->typed(0));   // 10,000
+
+        // Whatever the paper said, the account just kept adding the goods.
+        $this->assertSame(30_000, $this->distributor->fresh()->balance);
+    }
+
+    public function test_the_statement_never_shows_an_adjustment()
     {
         $this->create(10);
+        $this->create(5, $this->typed(5000));
 
-        $second = $this->create(5, ['previous_dues' => 1000]);
+        $entries = DistributorLedger::entries($this->distributor->fresh());
 
-        $this->assertNull($second->previous_dues_override);
-        $this->assertSame(1000, $second->previous_dues);
+        $this->assertSame(
+            ['invoice', 'invoice'],
+            array_map(fn ($entry) => $entry->type, $entries),
+        );
+        $this->assertSame(1000, $entries[0]->balanceAfter);
+        $this->assertSame(1500, $entries[1]->balanceAfter);
     }
 
-    public function test_an_override_can_be_negative_for_money_held_on_account()
+    public function test_the_statement_still_reconciles_line_by_line()
     {
-        $invoice = $this->create(5, ['previous_dues' => -400]);
+        $this->create(10);
+        $this->create(5, $this->typed(5000));
 
-        $this->assertSame(-400, $invoice->previous_dues);
-        $this->assertSame(100, $invoice->total_amount);
+        $balance = 0;
+
+        foreach (DistributorLedger::entries($this->distributor->fresh()) as $entry) {
+            $balance = $balance + $entry->debit - $entry->credit;
+            $this->assertSame($balance, $entry->balanceAfter);
+        }
+
+        $this->assertSame($balance, $this->distributor->fresh()->balance);
     }
 
-    /**
-     * The point of keeping the ledger intact: an override moves the running
-     * balance without erasing anything above it.
-     */
-    public function test_nothing_is_deleted_when_an_opening_balance_is_typed()
+    public function test_nothing_is_deleted_when_a_figure_is_typed()
     {
         $first = $this->create(10);
 
@@ -108,79 +176,46 @@ class PreviousDuesOverrideTest extends TestCase
             ],
         );
 
-        $second = $this->create(5, ['previous_dues' => 5000]);
+        $this->create(5, $this->typed(5000));
 
-        // Everything above the override is still on file.
         $this->assertSame(3, Invoice::count() + Payment::count());
-        $this->assertNotNull($first->fresh());
         $this->assertSame(1000, $first->fresh()->invoice_total);
         $this->assertSame(200, Payment::firstOrFail()->amount);
-
-        $this->assertSame(5000, $second->previous_dues);
-        $this->assertSame(5500, $second->total_amount);
     }
 
-    /**
-     * The statement must still add up top to bottom, so the gap the override
-     * introduces appears as its own line rather than the balance jumping.
-     */
-    public function test_the_statement_shows_the_adjustment_and_still_reconciles()
+    public function test_a_later_invoice_carries_the_real_account_forward()
     {
         $this->create(10);
-        $this->create(5, ['previous_dues' => 5000]);
+        $this->create(5, $this->typed(5000));
+        $third = $this->create(2);
 
-        $response = $this->actingAs($this->user)->get(route('distributors.show', [
-            'current_team' => $this->team->slug,
-            'distributor' => $this->distributor->id,
-        ]));
-
-        $response->assertInertia(fn (Assert $page) => $page
-            // Invoice 1000, adjustment +4000, invoice 500.
-            ->has('statement', 3)
-            ->where('statement.0.type', 'invoice')
-            ->where('statement.0.balanceAfter', 1000)
-            ->where('statement.1.type', 'adjustment')
-            ->where('statement.1.debit', 4000)
-            ->where('statement.1.balanceAfter', 5000)
-            ->where('statement.2.type', 'invoice')
-            ->where('statement.2.balanceAfter', 5500)
-            ->where('totals.due', 5500),
-        );
-
-        // Every line's balance is the one before it plus its own movement.
-        $balance = 0;
-
-        foreach (DistributorLedger::entries($this->distributor->fresh()) as $entry) {
-            $balance = $balance + $entry->debit - $entry->credit;
-            $this->assertSame($balance, $entry->balanceAfter);
-        }
-
-        $this->assertSame($balance, $this->distributor->fresh()->balance);
+        // The 5000 printed on the second changed nothing for the third.
+        $this->assertSame(1500, $third->previous_dues);
+        $this->assertSame(1700, $third->total_amount);
     }
 
-    public function test_an_override_survives_a_later_payment()
+    public function test_the_invoice_screen_prints_the_typed_figure()
     {
-        $invoice = $this->create(5, ['previous_dues' => 5000]);
+        $this->create(10);
+        $second = $this->create(5, $this->typed(5000));
 
-        $this->actingAs($this->user)->post(
-            route('payments.store', ['current_team' => $this->team->slug]),
-            [
-                'distributor_id' => $this->distributor->id,
-                'paid_on' => now()->toDateString(),
-                'amount' => 1500,
-            ],
-        );
-
-        $this->assertSame(5000, $invoice->fresh()->previous_dues);
-        $this->assertSame(4000, $this->distributor->fresh()->balance);
+        $this->actingAs($this->user)
+            ->get(route('invoices.show', [
+                'current_team' => $this->team->slug,
+                'invoice' => $second->id,
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('invoice.previousDues', 5000)
+                ->where('invoice.accountPreviousDues', 1000)
+                ->where('invoice.totalAmount', 5500),
+            );
     }
 
-    public function test_an_override_can_be_set_when_editing()
+    public function test_editing_can_set_a_figure_without_moving_the_balance()
     {
         $this->create(10);
         $second = $this->create(5);
-
-        $this->assertSame(1000, $second->previous_dues);
 
         $this->actingAs($this->user)->put(
             route('invoices.update', [
@@ -190,6 +225,7 @@ class PreviousDuesOverrideTest extends TestCase
             [
                 'sold_at' => now()->toDateString(),
                 'distributor_id' => $this->distributor->id,
+                'previous_dues_override' => true,
                 'previous_dues' => 250,
                 'items' => [[
                     'product_id' => $this->product->id,
@@ -197,17 +233,19 @@ class PreviousDuesOverrideTest extends TestCase
                     'unit_price' => 100,
                 ]],
             ],
-        );
+        )->assertSessionHasNoErrors();
 
-        $this->assertSame(250, $second->fresh()->previous_dues);
         $this->assertSame(250, $second->fresh()->previous_dues_override);
         $this->assertSame(750, $second->fresh()->total_amount);
+
+        // Two invoices of 1000 and 500, and nothing else.
+        $this->assertSame(1500, $this->distributor->fresh()->balance);
     }
 
-    public function test_editing_back_to_the_computed_figure_removes_the_override()
+    public function test_editing_without_the_opt_in_drops_the_figure()
     {
         $this->create(10);
-        $second = $this->create(5, ['previous_dues' => 250]);
+        $second = $this->create(5, $this->typed(250));
 
         $this->assertSame(250, $second->previous_dues_override);
 
@@ -219,27 +257,27 @@ class PreviousDuesOverrideTest extends TestCase
             [
                 'sold_at' => now()->toDateString(),
                 'distributor_id' => $this->distributor->id,
-                // 1000 is what the account says on its own.
-                'previous_dues' => 1000,
                 'items' => [[
                     'product_id' => $this->product->id,
                     'total_quantity' => 5,
                     'unit_price' => 100,
                 ]],
             ],
-        );
+        )->assertSessionHasNoErrors();
 
         $this->assertNull($second->fresh()->previous_dues_override);
         $this->assertSame(1000, $second->fresh()->previous_dues);
+        $this->assertSame(1500, $second->fresh()->total_amount);
     }
 
-    public function test_a_fractional_opening_balance_is_refused()
+    public function test_a_fractional_figure_is_refused()
     {
         $this->actingAs($this->user)->post(
             route('invoices.store', ['current_team' => $this->team->slug]),
             [
                 'sold_at' => now()->toDateString(),
                 'distributor_id' => $this->distributor->id,
+                'previous_dues_override' => true,
                 'previous_dues' => 250.5,
                 'items' => [[
                     'product_id' => $this->product->id,

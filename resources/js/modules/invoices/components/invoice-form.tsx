@@ -23,7 +23,24 @@ export type InvoicePayload = {
     comment: string | null;
     scheme_description: string | null;
     scheme_amount: number;
-    previous_dues: number;
+    /**
+     * Present only when the user turned the override on.
+     *
+     * Absent means "follow the account", which the server reads with `isset()`.
+     * Sending a number the user never chose is what pinned invoices by
+     * accident, so the key simply does not exist unless it was asked for.
+     */
+    previous_dues?: number;
+    /** The opt-in the server requires before it will honour `previous_dues`. */
+    previous_dues_override?: true;
+    /**
+     * Print this invoice without the running account on it.
+     *
+     * Presentation only — the balance and the statement are identical either
+     * way. Deliberately separate from `previous_dues`, which changes what the
+     * account says.
+     */
+    hide_previous_dues: boolean;
     items: ReturnType<typeof useInvoiceDraft>['payloadItems'];
 };
 
@@ -32,7 +49,10 @@ export type InvoiceFormSeed = InvoiceDraftSeed & {
     comment: string | null;
     schemeDescription: string | null;
     schemeAmount: number;
-    previousDues: number;
+    /** The pinned figure, or null when the invoice follows the account. */
+    previousDuesOverride: number | null;
+    /** Whether this invoice prints without the running account on it. */
+    hidePreviousDues: boolean;
 };
 
 type Props = {
@@ -91,28 +111,38 @@ export default function InvoiceForm({
     });
 
     /*
-     * Previous dues default to whatever the distributor's account says, and
-     * follow it when the distributor changes. A figure typed here is kept only
-     * while that distributor stays selected — which avoids an effect, and
-     * avoids carrying one distributor's opening balance onto another.
+     * Previous dues follow the distributor's account unless the user
+     * deliberately types a figure — which changes what this invoice prints and
+     * nothing else. The balance is a plain running total either way.
+     *
+     * Opting in explicitly, rather than inferring intent from "the field holds
+     * a different number", is the whole point. The field used to be permanently
+     * editable and a `number` input changes on a stray scroll or arrow key, so
+     * an accidental nudge silently rewrote the invoice. A figure can only be
+     * sent now if this is on, and it starts on only for an invoice that already
+     * carries one.
      */
-    const [duesEntry, setDuesEntry] = useState<{
-        distributorId: number | null;
-        value: string;
-    } | null>(
-        seed
-            ? {
-                  distributorId: seed.distributorId,
-                  value: String(seed.previousDues),
-              }
-            : null,
+    const [overrideDues, setOverrideDues] = useState(
+        seed?.previousDuesOverride != null,
+    );
+    const [duesText, setDuesText] = useState(
+        seed?.previousDuesOverride != null
+            ? String(seed.previousDuesOverride)
+            : '',
     );
 
-    const duesIsEdited = duesEntry?.distributorId === draft.distributorId;
-    const previousDuesText = duesIsEdited
-        ? (duesEntry?.value ?? '0')
-        : String(draft.totals.previousDues);
-    const previousDues = toWholeAmount(previousDuesText);
+    const accountDues = draft.totals.previousDues;
+    const previousDues = overrideDues ? toWholeAmount(duesText) : accountDues;
+
+    /*
+     * Leave the running account off the printed invoice.
+     *
+     * Presentation only, and deliberately separate from the override: this
+     * hands the distributor a clean bill for these goods while their balance
+     * and statement carry on exactly as they would have. Nothing about what is
+     * owed changes — only what this sheet of paper says.
+     */
+    const [hideDues, setHideDues] = useState(seed?.hidePreviousDues ?? false);
 
     const canSubmit =
         draft.distributorId !== null && draft.payloadItems.length > 0;
@@ -198,7 +228,7 @@ export default function InvoiceForm({
             <DistributorSummary distributor={draft.distributor} />
 
             <div className="mt-8 mb-3 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-ocean-900">Products</h2>
+                <h2 className="text-lg font-bold text-coffee-900">Products</h2>
                 <div className="flex items-center gap-3">
                     {watcher.refreshedAt && (
                         <span className="text-xs text-emerald-700">
@@ -215,7 +245,7 @@ export default function InvoiceForm({
                             // so re-check before the user picks a product.
                             void watcher.checkNow();
                         }}
-                        className="bg-ocean-600 hover:bg-ocean-700"
+                        className="bg-coffee-600 hover:bg-coffee-700"
                     >
                         Add Item
                     </Button>
@@ -252,31 +282,73 @@ export default function InvoiceForm({
                         : []),
                     {
                         label: 'Previous Dues',
-                        value: previousDues,
-                        hint:
-                            previousDues === draft.totals.previousDues
-                                ? "The distributor's outstanding balance, carried forward automatically."
-                                : `Overriding the account, which says ${draft.totals.previousDues}.`,
+                        value: hideDues ? 0 : previousDues,
+                        hint: hideDues
+                            ? `Left off this invoice. The account still says ${accountDues}, and the balance is unchanged.`
+                            : overrideDues
+                              ? `Printed on this invoice only. The account still says ${accountDues}, and the balance is unchanged.`
+                              : "The distributor's outstanding balance, carried forward automatically.",
                         control: (
-                            <Input
-                                type="number"
-                                step={1}
-                                aria-label="Previous dues"
-                                className="h-8 w-36 text-right tabular-nums"
-                                value={previousDuesText}
-                                onChange={(event) =>
-                                    setDuesEntry({
-                                        distributorId: draft.distributorId,
-                                        value: event.target.value,
-                                    })
-                                }
-                                data-test="previous-dues-input"
-                            />
+                            <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                                <label className="flex items-center gap-1.5 text-xs text-coffee-800/70">
+                                    <input
+                                        type="checkbox"
+                                        checked={hideDues}
+                                        onChange={(event) =>
+                                            setHideDues(event.target.checked)
+                                        }
+                                        data-test="hide-dues-toggle"
+                                    />
+                                    Hide on invoice
+                                </label>
+
+                                <label
+                                    className="flex items-center gap-1.5 text-xs text-coffee-800/70"
+                                    hidden={hideDues}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={overrideDues}
+                                        onChange={(event) => {
+                                            setOverrideDues(
+                                                event.target.checked,
+                                            );
+
+                                            // Start from what the account says,
+                                            // so turning this on to nudge a
+                                            // figure does not begin at zero.
+                                            if (event.target.checked) {
+                                                setDuesText(
+                                                    String(accountDues),
+                                                );
+                                            }
+                                        }}
+                                        data-test="override-dues-toggle"
+                                    />
+                                    Set manually
+                                </label>
+
+                                {overrideDues && !hideDues && (
+                                    <Input
+                                        type="number"
+                                        step={1}
+                                        aria-label="Previous dues"
+                                        className="h-8 w-36 text-right tabular-nums"
+                                        value={duesText}
+                                        onChange={(event) =>
+                                            setDuesText(event.target.value)
+                                        }
+                                        data-test="previous-dues-input"
+                                    />
+                                )}
+                            </div>
                         ),
                     },
                     {
                         label: 'Total Amount',
-                        value: draft.totals.netTotal - scheme + previousDues,
+                        value: hideDues
+                            ? draft.totals.netTotal - scheme
+                            : draft.totals.netTotal - scheme + previousDues,
                         emphasis: true,
                     },
                 ]}
@@ -293,11 +365,26 @@ export default function InvoiceForm({
                             comment: comment || null,
                             scheme_description: schemeDescription || null,
                             scheme_amount: scheme,
-                            previous_dues: previousDues,
                             items: draft.payloadItems,
+                            hide_previous_dues: hideDues,
+
+                            /*
+                             * The key is omitted entirely when the override is
+                             * off, rather than sent as null. The server decides
+                             * with `isset()`, so an absent key cannot be
+                             * misread however the request is serialised — and
+                             * there is then no value in the payload for
+                             * anything downstream to coerce into a zero.
+                             */
+                            ...(overrideDues
+                                ? {
+                                      previous_dues_override: true,
+                                      previous_dues: previousDues,
+                                  }
+                                : {}),
                         })
                     }
-                    className="bg-ocean-700 px-8 hover:bg-ocean-800"
+                    className="bg-coffee-700 px-8 hover:bg-coffee-800"
                     data-test="save-invoice-button"
                 >
                     {processing && <Spinner />}

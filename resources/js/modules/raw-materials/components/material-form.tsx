@@ -88,7 +88,7 @@ export function MaterialForm({
                             <div key={field.name} className="grid gap-1.5">
                                 <Label
                                     htmlFor={field.name}
-                                    className="text-ocean-900"
+                                    className="text-coffee-900"
                                 >
                                     {field.label}
                                     <span aria-hidden="true">*</span>
@@ -111,7 +111,7 @@ export function MaterialForm({
                                     }
                                 />
                                 {'hint' in field && !errors[field.name] && (
-                                    <p className="text-xs text-ocean-800/60">
+                                    <p className="text-xs text-coffee-800/60">
                                         {field.hint}
                                     </p>
                                 )}
@@ -125,7 +125,7 @@ export function MaterialForm({
                         Radix Select does not provide without extra wiring.
                     */}
                         <div className="grid gap-1.5">
-                            <Label htmlFor="unit" className="text-ocean-900">
+                            <Label htmlFor="unit" className="text-coffee-900">
                                 Unit<span aria-hidden="true">*</span>
                             </Label>
                             <select
@@ -133,7 +133,7 @@ export function MaterialForm({
                                 name="unit"
                                 required
                                 defaultValue={material?.unit ?? 'kg'}
-                                className="h-9 w-full rounded-md border border-ocean-200 bg-white px-3 py-1 text-sm text-ocean-900 shadow-xs focus-visible:border-ocean-400 focus-visible:ring-[3px] focus-visible:ring-ocean-200 focus-visible:outline-none"
+                                className="h-9 w-full rounded-md border border-coffee-200 bg-white px-3 py-1 text-sm text-coffee-900 shadow-xs focus-visible:border-coffee-400 focus-visible:ring-[3px] focus-visible:ring-coffee-200 focus-visible:outline-none"
                             >
                                 {units.map((unit) => (
                                     <option key={unit.value} value={unit.value}>
@@ -141,7 +141,7 @@ export function MaterialForm({
                                     </option>
                                 ))}
                             </select>
-                            <p className="text-xs text-ocean-800/60">
+                            <p className="text-xs text-coffee-800/60">
                                 Quantities are whole numbers. Pick a smaller
                                 unit if you need finer amounts.
                             </p>
@@ -149,7 +149,7 @@ export function MaterialForm({
                         </div>
 
                         <div className="grid gap-1.5">
-                            <Label htmlFor="note" className="text-ocean-900">
+                            <Label htmlFor="note" className="text-coffee-900">
                                 Note
                             </Label>
                             <Input
@@ -165,7 +165,7 @@ export function MaterialForm({
                         <Button
                             type="submit"
                             disabled={processing}
-                            className="w-full bg-ocean-600 hover:bg-ocean-700"
+                            className="w-full bg-coffee-600 hover:bg-coffee-700"
                             data-test={testId}
                         >
                             {processing && <Spinner />}
