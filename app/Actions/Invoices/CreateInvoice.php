@@ -41,6 +41,7 @@ class CreateInvoice
      *     scheme_description?: string|null,
      *     scheme_amount?: int|null,
      *     previous_dues?: int|null,
+     *     hide_previous_dues?: bool,
      *     items: list<array{product_id: int, carton_quantity?: int, total_quantity: int, unit_price?: int|null, discount?: int|null, remarks?: string|null}>
      * }  $data
      */
@@ -63,18 +64,15 @@ class CreateInvoice
             $schemeAmount = Money::fromInput($data['scheme_amount'] ?? 0);
 
             /*
-             * Previous dues normally come from replaying the account. A figure
-             * typed on the form is kept only when it differs from that — an
-             * opening balance for a distributor coming off paper, say — so a
-             * user who leaves the field alone does not accidentally pin every
-             * invoice to a fixed number.
+             * A figure typed into Previous Dues changes what this invoice
+             * prints and nothing else. The account stays a plain running total,
+             * so the balance after this sale is the balance before it plus what
+             * it charges — whatever the paper says.
              */
-            $override = isset($data['previous_dues']) && (int) $data['previous_dues'] !== $distributor->balance
-                ? (int) $data['previous_dues']
-                : null;
+            $override = isset($data['previous_dues']) ? (int) $data['previous_dues'] : null;
 
-            $previousDues = $override ?? $distributor->balance;
-            $totalAmount = $invoiceTotal - $discountTotal - $schemeAmount + $previousDues;
+            $previousDues = $distributor->balance;
+            $totalAmount = $invoiceTotal - $discountTotal - $schemeAmount + ($override ?? $previousDues);
 
             ['number' => $number, 'sequence' => $sequence] = InvoiceNumbers::next($team);
 
@@ -93,6 +91,9 @@ class CreateInvoice
                 'discount_total' => $discountTotal,
                 'previous_dues' => $previousDues,
                 'previous_dues_override' => $override,
+                // Presentation only: the figures above are recorded and
+                // replayed whatever this says.
+                'hide_previous_dues' => (bool) ($data['hide_previous_dues'] ?? false),
                 'total_amount' => $totalAmount,
             ]);
 
