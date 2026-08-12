@@ -18,6 +18,16 @@ use Illuminate\Support\Facades\URL;
 trait HasTeams
 {
     /**
+     * Permissions already resolved this request, keyed by team id.
+     *
+     * Not persisted and not shared between requests — a membership changed in
+     * settings must take effect on the very next page load.
+     *
+     * @var array<int, array<int, TeamPermission>>
+     */
+    private array $resolvedTeamPermissions = [];
+
+    /**
      * Get all of the teams the user belongs to.
      *
      * @return BelongsToMany<Team, $this>
@@ -165,17 +175,59 @@ trait HasTeams
      */
     public function toTeamPermissions(Team $team): TeamPermissions
     {
-        $role = $this->teamRole($team);
-
         return new TeamPermissions(
-            canUpdateTeam: $role?->hasPermission(TeamPermission::UpdateTeam) ?? false,
-            canDeleteTeam: $role?->hasPermission(TeamPermission::DeleteTeam) ?? false,
-            canAddMember: $role?->hasPermission(TeamPermission::AddMember) ?? false,
-            canUpdateMember: $role?->hasPermission(TeamPermission::UpdateMember) ?? false,
-            canRemoveMember: $role?->hasPermission(TeamPermission::RemoveMember) ?? false,
-            canCreateInvitation: $role?->hasPermission(TeamPermission::CreateInvitation) ?? false,
-            canCancelInvitation: $role?->hasPermission(TeamPermission::CancelInvitation) ?? false,
+            canUpdateTeam: $this->hasTeamPermission($team, TeamPermission::UpdateTeam),
+            canDeleteTeam: $this->hasTeamPermission($team, TeamPermission::DeleteTeam),
+            canAddMember: $this->hasTeamPermission($team, TeamPermission::AddMember),
+            canUpdateMember: $this->hasTeamPermission($team, TeamPermission::UpdateMember),
+            canRemoveMember: $this->hasTeamPermission($team, TeamPermission::RemoveMember),
+            canCreateInvitation: $this->hasTeamPermission($team, TeamPermission::CreateInvitation),
+            canCancelInvitation: $this->hasTeamPermission($team, TeamPermission::CancelInvitation),
         );
+    }
+
+    /**
+     * Everything this user may do on the team.
+     *
+     * Their own tailored list when settings has chosen one, otherwise the
+     * role's defaults — see `Membership::resolvedPermissions()`.
+     *
+     * @return array<int, TeamPermission>
+     */
+    public function teamPermissions(Team $team): array
+    {
+        /*
+         * Memoised for the life of the request. `EnsureTeamPermission` asks
+         * once per permission it was given, the shared props ask again to build
+         * the map React reads, and a policy may ask a third time — all for one
+         * row that cannot change mid-request.
+         */
+        return $this->resolvedTeamPermissions[$team->id] ??= $this->teamMemberships()
+            ->where('team_id', $team->id)
+            ->first()
+            ?->resolvedPermissions() ?? [];
+    }
+
+    /**
+     * The permission map shipped to React, so the UI can hide what the server
+     * would refuse.
+     *
+     * @return array<string, bool>
+     */
+    public function toPermissionMap(Team $team): array
+    {
+        $granted = array_map(
+            fn (TeamPermission $permission) => $permission->value,
+            $this->teamPermissions($team),
+        );
+
+        $map = [];
+
+        foreach (TeamPermission::cases() as $permission) {
+            $map[$permission->value] = in_array($permission->value, $granted, true);
+        }
+
+        return $map;
     }
 
     public function fallbackTeam(?Team $excluding = null): ?Team
@@ -191,6 +243,6 @@ trait HasTeams
      */
     public function hasTeamPermission(Team $team, TeamPermission $permission): bool
     {
-        return $this->teamRole($team)?->hasPermission($permission) ?? false;
+        return in_array($permission, $this->teamPermissions($team), true);
     }
 }
