@@ -17,7 +17,15 @@ enum TeamRole: string
     }
 
     /**
-     * Get all the permissions for this role.
+     * The permissions a role starts with.
+     *
+     * A starting point, not a cage: a member's permissions can be tailored
+     * individually in company settings, and only fall back to these when
+     * nobody has chosen. See `HasTeams::teamPermissions()`.
+     *
+     * Member is deliberately the shape of a salesperson — enough to see the
+     * catalogue and raise an invoice, and nothing that rewrites history or
+     * touches the company's money.
      *
      * @return array<TeamPermission>
      */
@@ -25,12 +33,21 @@ enum TeamRole: string
     {
         return match ($this) {
             self::Owner => TeamPermission::cases(),
-            self::Admin => [
-                TeamPermission::UpdateTeam,
-                TeamPermission::CreateInvitation,
-                TeamPermission::CancelInvitation,
+
+            // Everything except destroying the company, which stays with the
+            // owner alone.
+            self::Admin => array_values(array_filter(
+                TeamPermission::cases(),
+                fn (TeamPermission $permission) => $permission !== TeamPermission::DeleteTeam,
+            )),
+
+            self::Member => [
+                TeamPermission::ViewInvoices,
+                TeamPermission::CreateInvoice,
+                TeamPermission::ViewProducts,
+                TeamPermission::ViewDistributors,
+                TeamPermission::ViewPayments,
             ],
-            self::Member => [],
         };
     }
 
