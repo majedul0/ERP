@@ -44,6 +44,9 @@ Route::prefix('majedul')->group(function () {
         Route::get('companies', [PlatformController::class, 'index'])->name('platform.index');
         Route::post('companies', [PlatformController::class, 'store'])->name('platform.companies.store');
         Route::patch('companies/{team}/suspension', [PlatformController::class, 'suspend'])->name('platform.companies.suspend');
+        Route::patch('password', [PlatformController::class, 'updatePassword'])
+            ->middleware('throttle:6,1')
+            ->name('platform.password.update');
         Route::post('logout', [PlatformController::class, 'logout'])->name('platform.logout');
     });
 });
