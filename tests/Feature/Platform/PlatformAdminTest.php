@@ -186,6 +186,45 @@ class PlatformAdminTest extends TestCase
         $this->assertNull($team->fresh()->suspended_at);
     }
 
+    public function test_the_password_can_be_changed_from_the_dashboard()
+    {
+        $admin = $this->superAdmin();
+        $admin->forceFill(['password' => Hash::make('the-old-password')])->save();
+
+        $this->actingAs($admin->fresh())->patch(route('platform.password.update'), [
+            'current_password' => 'the-old-password',
+            'password' => 'a-brand-new-password',
+            'password_confirmation' => 'a-brand-new-password',
+        ])->assertRedirect(route('platform.index'));
+
+        $this->assertTrue(Hash::check('a-brand-new-password', $admin->fresh()->password));
+    }
+
+    public function test_changing_the_password_requires_the_current_one()
+    {
+        $admin = $this->superAdmin();
+        $admin->forceFill(['password' => Hash::make('the-old-password')])->save();
+
+        $this->actingAs($admin->fresh())->patch(route('platform.password.update'), [
+            'current_password' => 'not-the-old-password',
+            'password' => 'a-brand-new-password',
+            'password_confirmation' => 'a-brand-new-password',
+        ])->assertSessionHasErrors('current_password');
+
+        $this->assertTrue(Hash::check('the-old-password', $admin->fresh()->password));
+    }
+
+    public function test_a_company_user_cannot_change_the_platform_password()
+    {
+        $this->actingAs(User::factory()->create())
+            ->patch(route('platform.password.update'), [
+                'current_password' => 'whatever',
+                'password' => 'a-brand-new-password',
+                'password_confirmation' => 'a-brand-new-password',
+            ])
+            ->assertNotFound();
+    }
+
     public function test_the_create_super_admin_command_promotes_rather_than_duplicates()
     {
         $this->artisan('app:create-super-admin', [
