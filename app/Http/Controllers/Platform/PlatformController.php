@@ -131,6 +131,37 @@ class PlatformController extends Controller
     }
 
     /**
+     * Change the platform administrator's own password.
+     *
+     * The current one is required: a signed-in session left open on somebody
+     * else's screen must not be enough to lock the owner out of their own
+     * platform.
+     *
+     * Other sessions are logged out afterwards, because the usual reason for
+     * changing a password is suspecting somebody else has it.
+     */
+    public function updatePassword(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'string', 'confirmed', Password::default()],
+        ]);
+
+        $user = $request->user();
+
+        $user->forceFill(['password' => Hash::make($validated['password'])])->save();
+
+        Auth::logoutOtherDevices($validated['password']);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Password changed. Other sessions have been signed out.'),
+        ]);
+
+        return to_route('platform.index');
+    }
+
+    /**
      * Stop a company using the system, or let it back in.
      *
      * Nothing is deleted either way — their books wait for them.
