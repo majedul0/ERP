@@ -62,6 +62,7 @@ export default function PlatformIndex({
     };
 }) {
     const [createOpen, setCreateOpen] = useState(false);
+    const [passwordOpen, setPasswordOpen] = useState(false);
 
     // Routed by slug, which is how the team is bound everywhere else.
     const setSuspension = (company: Company, value: boolean) =>
@@ -80,13 +81,107 @@ export default function PlatformIndex({
                     <h1 className="text-lg font-bold text-white">
                         Platform administration
                     </h1>
-                    <Button
-                        variant="ghost"
-                        className="text-white hover:bg-white/10"
-                        onClick={() => router.post(logout())}
-                    >
-                        Sign out
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Dialog
+                            open={passwordOpen}
+                            onOpenChange={setPasswordOpen}
+                        >
+                            <DialogTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    className="text-white hover:bg-white/10"
+                                    data-test="change-password-button"
+                                >
+                                    Change password
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogTitle>Change your password</DialogTitle>
+                                <DialogDescription>
+                                    Your current password is required, and every
+                                    other session will be signed out.
+                                </DialogDescription>
+
+                                <Form
+                                    {...PlatformController.updatePassword.form()}
+                                    options={{ preserveScroll: true }}
+                                    onSuccess={() => setPasswordOpen(false)}
+                                    resetOnSuccess
+                                    className="space-y-4"
+                                >
+                                    {({ processing, errors }) => (
+                                        <>
+                                            <div className="grid gap-1.5">
+                                                <Label htmlFor="current_password">
+                                                    Current password
+                                                </Label>
+                                                <Input
+                                                    id="current_password"
+                                                    name="current_password"
+                                                    type="password"
+                                                    required
+                                                    autoComplete="current-password"
+                                                />
+                                                <InputError
+                                                    message={
+                                                        errors.current_password
+                                                    }
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-1.5">
+                                                <Label htmlFor="password">
+                                                    New password
+                                                </Label>
+                                                <Input
+                                                    id="password"
+                                                    name="password"
+                                                    type="password"
+                                                    required
+                                                    autoComplete="new-password"
+                                                />
+                                                <InputError
+                                                    message={errors.password}
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-1.5">
+                                                <Label htmlFor="password_confirmation">
+                                                    Confirm new password
+                                                </Label>
+                                                <Input
+                                                    id="password_confirmation"
+                                                    name="password_confirmation"
+                                                    type="password"
+                                                    required
+                                                    autoComplete="new-password"
+                                                />
+                                            </div>
+
+                                            <DialogFooter>
+                                                <Button
+                                                    type="submit"
+                                                    disabled={processing}
+                                                    data-test="save-password-button"
+                                                >
+                                                    {processing && <Spinner />}
+                                                    Change password
+                                                </Button>
+                                            </DialogFooter>
+                                        </>
+                                    )}
+                                </Form>
+                            </DialogContent>
+                        </Dialog>
+
+                        <Button
+                            variant="ghost"
+                            className="text-white hover:bg-white/10"
+                            onClick={() => router.post(logout())}
+                        >
+                            Sign out
+                        </Button>
+                    </div>
                 </div>
             </header>
 
