@@ -7,9 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A Laravel 13 + Inertia 3 + React 19 application being built into the multi-tenant
 invoicing/financial-management SaaS described in `PRD-Multi-Tenant-Invoicing-Platform.md`.
 
-The current code is the Laravel React starter kit with **teams** wired in — Phase 1 of the
-PRD's build plan (auth + tenant scaffolding). None of the invoicing domain
-(invoices, distributors, vendors, products, payments, expenses) exists yet.
+Built on the Laravel React starter kit with **teams** as the tenant. The domain now covers
+products, distributors, invoices (with challan, print and Excel), payments received, raw
+materials with purchases and stock levels, vendors with bills and payments made, expenses, and
+a financial report. Deployment is live: push to `main` builds a Docker image and deploys it.
 
 Reconcile these before writing tenant-scoped code:
 
@@ -102,10 +103,26 @@ Two layers, both used:
 
 - **Roles** — `TeamRole` enum (owner > admin > member) with `level()`/`isAtLeast()` for the
   middleware's minimum-role check.
-- **Permissions** — `TeamPermission` enum; `TeamRole::permissions()` maps role → permissions.
-  `TeamPolicy` gates actions (`Gate::authorize('update', $team)`), and
-  `$user->toTeamPermissions($team)` ships a `TeamPermissions` DTO to React so the UI can hide
-  what the backend would reject.
+- **Permissions** — `TeamPermission` covers the whole domain, split **view** from **manage**
+  because that is the distinction the business makes: a salesperson needs to see products to
+  raise an invoice without being able to reprice them.
+
+`TeamRole::permissions()` is a **starting point, not a cage**. `team_members.permissions` is a
+nullable JSON column: **null means "follow the role"**, and an array — including an empty one —
+means "this member specifically". The two differ deliberately, and `Membership::resolvedPermissions()`
+is the only place that decides. Unknown strings are dropped, so removing a case from the enum
+stops granting anything even if a stale row still names it.
+
+Enforcement is `EnsureTeamPermission` on **every** domain route
+(`->middleware(EnsureTeamPermission::class.':invoice:update')`; several values mean any one
+will do). The `can` map shared by `HandleInertiaRequests` and read through `useCan` hides menus
+and buttons, but hiding is a courtesy — **a hidden button is still a reachable URL**, so the
+route is what actually decides. `tests/Feature/Teams/PermissionEnforcementTest.php` asks for
+the addresses directly.
+
+The **owner keeps every permission always** — someone has to be able to hand access back after
+a mistake. Admins get everything except deleting the company, including managing members, since
+assigning access is what the settings screen is for.
 
 Complex authorization also lives in Form Requests (`app/Http/Requests/Teams/*`) — e.g.
 `DeleteTeamRequest` — rather than in controllers.
@@ -230,6 +247,25 @@ Verified out-of-band against real Postgres and Redis, not just the sqlite test s
 concurrent processes against 10 units of stock produced exactly 10 invoices, 10 distinct
 numbers, and a stock of 0; 30 concurrent invoices produced INV1–INV30 with no duplicates and
 an exactly correct distributor balance.
+
+### Buying and spending
+
+`App\Support\VendorLedger` is the mirror of `DistributorLedger` and deliberately the same
+shape: bills are debits, payments made are credits, and `vendors.balance` is what is still
+payable (negative means the vendor holds an advance). Same ordering rule, same replay through
+`ReplayVendorBalance`, and **no override and no adjustment** — a plain running total is what
+makes a statement reconcilable, which the sales side learned the hard way.
+
+**Expenses are not vendor bills.** A bill is owed to somebody and settled later; an expense is
+money already gone. Keeping them apart is what lets the report show what is still payable
+separately from what has been spent. Categories are a fixed enum (`ExpenseCategory`) because
+the report groups by them.
+
+`App\Support\FinancialReport` recomputes on every request from the same tables the screens
+read, so correcting an invoice yesterday corrects last month's report. It deliberately shows
+**no profit line**: an invoice records what a product sold for, not what it cost, so profit
+would be a guess dressed up as a figure. Balances (`standing`) are as of today and are not
+filtered by the period — "what is owed to us" has no date range.
 
 ### Queues (Horizon)
 
