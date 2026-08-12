@@ -73,9 +73,13 @@ class DashboardController extends Controller
             ->whereDate('paid_on', today())
             ->sum('amount');
 
-        // Expenses land here when that module ships; an honest zero until then,
-        // not an invented number.
-        $spent = 0;
+        /*
+         * Money out today: what was spent running the company, plus what was
+         * paid to vendors. Both are cash leaving on the day, which is what the
+         * banner's Total is asking about.
+         */
+        $spent = (int) $team->expenses()->whereDate('spent_on', today())->sum('amount')
+            + (int) $team->vendorPayments()->whereDate('paid_on', today())->sum('amount');
 
         return [
             'total' => $received - $spent,
