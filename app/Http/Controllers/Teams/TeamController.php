@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Teams;
 
 use App\Actions\Teams\CreateTeam;
 use App\Actions\Teams\UpdateTeam;
+use App\Enums\TeamPermission;
 use App\Enums\TeamRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Teams\DeleteTeamRequest;
@@ -35,8 +36,19 @@ class TeamController extends Controller
     /**
      * Store a newly created team.
      */
+    /**
+     * Create a company.
+     *
+     * Platform administrators only. This system is sold to companies, so a
+     * customer creating more companies for themselves would make the thing
+     * being sold meaningless — and it is how somebody ends up in an empty
+     * workspace wondering where their invoices went. New companies are opened
+     * from the platform panel.
+     */
     public function store(SaveTeamRequest $request, CreateTeam $createTeam): RedirectResponse
     {
+        abort_unless($request->user()?->is_super_admin, 403);
+
         $team = $createTeam->handle($request->user(), $request->validated('name'));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Team created.')]);
@@ -69,6 +81,14 @@ class TeamController extends Controller
                     'avatar' => $member->avatar ?? null,
                     'role' => $membership->role->value,
                     'role_label' => $membership->role->label(),
+
+                    // What this member may actually do, and whether it was
+                    // chosen for them or inherited from the role.
+                    'permissions' => array_map(
+                        fn (TeamPermission $permission) => $permission->value,
+                        $membership->resolvedPermissions(),
+                    ),
+                    'has_custom_permissions' => $membership->permissions !== null,
                 ];
             }),
             'invitations' => $team->invitations()
@@ -83,6 +103,18 @@ class TeamController extends Controller
                 ]),
             'permissions' => $user->toTeamPermissions($team),
             'availableRoles' => TeamRole::assignable(),
+
+            // The full catalogue for the per-member checkboxes, plus what each
+            // role grants so the UI can reset a member back to its defaults.
+            'permissionCatalogue' => TeamPermission::grouped(),
+            'rolePermissions' => collect(TeamRole::cases())
+                ->mapWithKeys(fn (TeamRole $role) => [
+                    $role->value => array_map(
+                        fn (TeamPermission $permission) => $permission->value,
+                        $role->permissions(),
+                    ),
+                ])
+                ->all(),
         ]);
     }
 
