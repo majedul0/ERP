@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $address
  * @property string|null $phone
  * @property bool $is_personal
+ * @property Carbon|null $suspended_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -35,7 +36,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Bank> $banks
  * @property-read Collection<int, Payment> $payments
  */
-#[Fillable(['name', 'slug', 'logo_path', 'address', 'phone', 'is_personal'])]
+#[Fillable(['name', 'slug', 'logo_path', 'address', 'phone', 'is_personal', 'suspended_at'])]
 class Team extends Model
 {
     /** @use HasFactory<TeamFactory> */
@@ -135,6 +136,38 @@ class Team extends Model
     }
 
     /**
+     * @return HasMany<Expense, $this>
+     */
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    /**
+     * @return HasMany<Vendor, $this>
+     */
+    public function vendors(): HasMany
+    {
+        return $this->hasMany(Vendor::class);
+    }
+
+    /**
+     * @return HasMany<VendorBill, $this>
+     */
+    public function vendorBills(): HasMany
+    {
+        return $this->hasMany(VendorBill::class);
+    }
+
+    /**
+     * @return HasMany<VendorPayment, $this>
+     */
+    public function vendorPayments(): HasMany
+    {
+        return $this->hasMany(VendorPayment::class);
+    }
+
+    /**
      * @return HasMany<RawMaterial, $this>
      */
     public function rawMaterials(): HasMany
@@ -183,6 +216,7 @@ class Team extends Model
     {
         return [
             'is_personal' => 'boolean',
+            'suspended_at' => 'datetime',
         ];
     }
 

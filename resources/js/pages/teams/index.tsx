@@ -1,7 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
-import { Eye, LogOut, Pencil, Plus } from 'lucide-react';
+import { Eye, LogOut, Pencil } from 'lucide-react';
 import { useState } from 'react';
-import CreateTeamModal from '@/components/create-team-modal';
 import Heading from '@/components/heading';
 import LeaveTeamModal from '@/components/leave-team-modal';
 import { Badge } from '@/components/ui/badge';
@@ -36,17 +35,16 @@ export default function TeamsIndex({ teams }: Props) {
 
             <div className="flex flex-col space-y-6">
                 <div className="flex items-center justify-between">
+                    {/*
+                        No "new company" button: companies are opened by the
+                        platform, not by their own customers. Adding staff is
+                        done inside the company, from Add member.
+                    */}
                     <Heading
                         variant="small"
-                        title="Teams"
-                        description="Manage your teams and team memberships"
+                        title="Company"
+                        description="Manage your staff and what each of them can do."
                     />
-
-                    <CreateTeamModal>
-                        <Button data-test="teams-new-team-button">
-                            <Plus /> New team
-                        </Button>
-                    </CreateTeamModal>
                 </div>
 
                 <div className="space-y-3">

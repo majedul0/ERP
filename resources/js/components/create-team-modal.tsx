@@ -33,20 +33,31 @@ export default function CreateTeamModal({ children }: PropsWithChildren) {
                     {({ errors, processing }) => (
                         <>
                             <DialogHeader>
-                                <DialogTitle>Create a new team</DialogTitle>
+                                <DialogTitle>
+                                    Create another company
+                                </DialogTitle>
+                                {/* Spelled out because this is easy to reach
+                                    for when what you actually want is to add
+                                    a member of staff — which is done from the
+                                    company's own settings, not here. */}
                                 <DialogDescription>
-                                    Create a new team to collaborate with
-                                    others.
+                                    A company is a separate set of books, with
+                                    its own products, invoices and staff. You
+                                    will be switched into it, so the name and
+                                    logo at the top will change. To add someone
+                                    to the company you already have, use{' '}
+                                    <strong>Add member</strong> on its settings
+                                    page instead.
                                 </DialogDescription>
                             </DialogHeader>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Team name</Label>
+                                <Label htmlFor="name">Company name</Label>
                                 <Input
                                     id="name"
                                     name="name"
                                     data-test="create-team-name"
-                                    placeholder="My team"
+                                    placeholder="Second Company Ltd"
                                     required
                                 />
                                 <InputError message={errors.name} />

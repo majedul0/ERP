@@ -19,6 +19,7 @@ import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { cn } from '@/lib/utils';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
+import { useCan } from '../hooks/use-can';
 import { companyNavItems } from '../nav-items';
 import type { CompanyNavItem } from '../nav-items';
 import type { CompanyBrand } from '../types';
@@ -115,7 +116,8 @@ export default function CompanyHeader({ brand }: { brand: CompanyBrand }) {
     const { currentTeam } = usePage().props;
     const { currentUrl } = useCurrentUrl();
     const cleanup = useMobileNavigation();
-    const items = companyNavItems(currentTeam?.slug ?? null);
+    const can = useCan();
+    const items = companyNavItems(currentTeam?.slug ?? null, can);
     const homeHref = items[0]?.href;
 
     const handleLogout = () => {

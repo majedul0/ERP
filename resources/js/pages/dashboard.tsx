@@ -2,7 +2,11 @@ import { Head } from '@inertiajs/react';
 import { usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import PendingInvitationsModal from '@/components/pending-invitations-modal';
-import { companyQuickActions, useCompanyBrand } from '@/modules/company';
+import {
+    companyQuickActions,
+    useCan,
+    useCompanyBrand,
+} from '@/modules/company';
 import { DashboardHero, TodaysSalesTable } from '@/modules/dashboard';
 import type { DashboardStats, TodaySale } from '@/modules/dashboard';
 import type { DashboardInvitation } from '@/types';
@@ -19,6 +23,7 @@ export default function Dashboard({
     todaysSales,
 }: Props) {
     const brand = useCompanyBrand();
+    const can = useCan();
     const { currentTeam } = usePage().props;
     const [showInvitations, setShowInvitations] = useState(
         pendingInvitations.length > 0,
@@ -37,7 +42,10 @@ export default function Dashboard({
             <DashboardHero
                 brand={brand}
                 stats={stats}
-                quickActions={companyQuickActions(currentTeam?.slug ?? null)}
+                quickActions={companyQuickActions(
+                    currentTeam?.slug ?? null,
+                    can,
+                )}
             />
             <TodaysSalesTable sales={todaysSales} />
         </>

@@ -35,7 +35,12 @@ class TeamMemberTest extends TestCase
         );
     }
 
-    public function test_team_member_roles_cannot_be_updated_by_non_owners()
+    /**
+     * Admins run the company day to day, which includes deciding who may do
+     * what — that is the whole point of the permissions screen in settings.
+     * Only destroying the company stays with the owner.
+     */
+    public function test_team_member_roles_can_be_updated_by_admins()
     {
         $owner = User::factory()->create();
         $admin = User::factory()->create();
@@ -46,13 +51,29 @@ class TeamMemberTest extends TestCase
         $team->members()->attach($admin, ['role' => TeamRole::Admin->value]);
         $team->members()->attach($member, ['role' => TeamRole::Member->value]);
 
-        $response = $this
-            ->actingAs($admin)
+        $this->actingAs($admin)
             ->patch(route('teams.members.update', [$team, $member]), [
                 'role' => TeamRole::Admin->value,
-            ]);
+            ])
+            ->assertRedirect(route('teams.edit', $team));
+    }
 
-        $response->assertForbidden();
+    public function test_team_member_roles_cannot_be_updated_by_ordinary_members()
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $other = User::factory()->create();
+        $team = Team::factory()->create();
+
+        $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+        $team->members()->attach($member, ['role' => TeamRole::Member->value]);
+        $team->members()->attach($other, ['role' => TeamRole::Member->value]);
+
+        $this->actingAs($member)
+            ->patch(route('teams.members.update', [$team, $other]), [
+                'role' => TeamRole::Admin->value,
+            ])
+            ->assertForbidden();
     }
 
     public function test_team_members_can_be_removed_by_owners()
@@ -73,7 +94,7 @@ class TeamMemberTest extends TestCase
         $this->assertFalse($member->fresh()->belongsToTeam($team));
     }
 
-    public function test_team_members_cannot_be_removed_by_non_owners()
+    public function test_team_members_can_be_removed_by_admins()
     {
         $owner = User::factory()->create();
         $admin = User::factory()->create();
@@ -84,11 +105,29 @@ class TeamMemberTest extends TestCase
         $team->members()->attach($admin, ['role' => TeamRole::Admin->value]);
         $team->members()->attach($member, ['role' => TeamRole::Member->value]);
 
-        $response = $this
-            ->actingAs($admin)
-            ->delete(route('teams.members.destroy', [$team, $member]));
+        $this->actingAs($admin)
+            ->delete(route('teams.members.destroy', [$team, $member]))
+            ->assertRedirect(route('teams.edit', $team));
 
-        $response->assertForbidden();
+        $this->assertFalse($member->fresh()->belongsToTeam($team));
+    }
+
+    public function test_team_members_cannot_be_removed_by_ordinary_members()
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $other = User::factory()->create();
+        $team = Team::factory()->create();
+
+        $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+        $team->members()->attach($member, ['role' => TeamRole::Member->value]);
+        $team->members()->attach($other, ['role' => TeamRole::Member->value]);
+
+        $this->actingAs($member)
+            ->delete(route('teams.members.destroy', [$team, $other]))
+            ->assertForbidden();
+
+        $this->assertTrue($other->fresh()->belongsToTeam($team));
     }
 
     public function test_team_owner_cannot_be_removed()

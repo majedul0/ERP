@@ -16,6 +16,11 @@ declare module '@inertiajs/core' {
             auth: Auth;
             sidebarOpen: boolean;
             currentTeam: Team | null;
+            /**
+             * Permission values from App\Enums\TeamPermission to whether this
+             * member has them. Read it through `useCan`, not directly.
+             */
+            can: Record<string, boolean>;
             companyBrand: CompanyBrand | null;
             teams: Team[];
             [key: string]: unknown;

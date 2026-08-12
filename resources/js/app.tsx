@@ -12,7 +12,10 @@ createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: (name) => {
         switch (true) {
+            // The platform panel is not a company workspace and deliberately
+            // carries none of the company chrome.
             case name === 'welcome':
+            case name.startsWith('platform/'):
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;

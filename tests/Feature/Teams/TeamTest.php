@@ -24,12 +24,23 @@ class TeamTest extends TestCase
         $response->assertOk();
     }
 
-    public function test_teams_can_be_created()
+    /**
+     * Companies are opened by the platform, not by their own customers — see
+     * TeamController::store and the platform panel.
+     */
+    private function platformAdmin(): User
     {
         $user = User::factory()->create();
 
+        $user->forceFill(['is_super_admin' => true])->save();
+
+        return $user;
+    }
+
+    public function test_teams_can_be_created_by_the_platform()
+    {
         $response = $this
-            ->actingAs($user)
+            ->actingAs($this->platformAdmin())
             ->post(route('teams.store'), [
                 'name' => 'Test Team',
             ]);
@@ -44,14 +55,12 @@ class TeamTest extends TestCase
 
     public function test_team_slug_uses_next_available_suffix()
     {
-        $user = User::factory()->create();
-
         Team::factory()->create(['name' => 'Acme', 'slug' => 'acme']);
         Team::factory()->create(['name' => 'Acme One', 'slug' => 'acme-1']);
         Team::factory()->create(['name' => 'Acme Ten', 'slug' => 'acme-10']);
 
         $this
-            ->actingAs($user)
+            ->actingAs($this->platformAdmin())
             ->post(route('teams.store'), [
                 'name' => 'Acme',
             ]);

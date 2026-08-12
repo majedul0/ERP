@@ -2,10 +2,12 @@ import { Form, Head, router } from '@inertiajs/react';
 import { ChevronDown, Mail, UserPlus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import CancelInvitationModal from '@/components/cancel-invitation-modal';
+import CreateMemberModal from '@/components/create-member-modal';
 import DeleteTeamModal from '@/components/delete-team-modal';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import InviteMemberModal from '@/components/invite-member-modal';
+import MemberPermissionsModal from '@/components/member-permissions-modal';
 import RemoveMemberModal from '@/components/remove-member-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +30,7 @@ import { useInitials } from '@/hooks/use-initials';
 import { edit, index, update } from '@/routes/teams';
 import { update as updateMember } from '@/routes/teams/members';
 import type {
+    PermissionGroup,
     RoleOption,
     Team,
     TeamInvitation,
@@ -41,6 +44,8 @@ type Props = {
     invitations: TeamInvitation[];
     permissions: TeamPermissions;
     availableRoles: RoleOption[];
+    permissionCatalogue: PermissionGroup[];
+    rolePermissions: Record<string, string[]>;
 };
 
 export default function TeamEdit({
@@ -49,6 +54,8 @@ export default function TeamEdit({
     invitations,
     permissions,
     availableRoles,
+    permissionCatalogue,
+    rolePermissions,
 }: Props) {
     const getInitials = useInitials();
 
@@ -58,6 +65,10 @@ export default function TeamEdit({
     const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(
         null,
     );
+    const [permissionsFor, setPermissionsFor] = useState<TeamMember | null>(
+        null,
+    );
+    const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [cancelInvitationDialogOpen, setCancelInvitationDialogOpen] =
         useState(false);
     const [invitationToCancel, setInvitationToCancel] =
@@ -156,14 +167,29 @@ export default function TeamEdit({
                             }
                         />
 
-                        {permissions.canCreateInvitation ? (
-                            <Button
-                                data-test="invite-member-button"
-                                onClick={() => setInviteDialogOpen(true)}
-                            >
-                                <UserPlus /> Invite member
-                            </Button>
-                        ) : null}
+                        <div className="flex items-center gap-2">
+                            {/* Creating the account outright is the usual way
+                                staff are set up; inviting is for somebody who
+                                already has an account on the platform. */}
+                            {permissions.canAddMember ? (
+                                <Button
+                                    data-test="create-member-button-open"
+                                    onClick={() => setCreateDialogOpen(true)}
+                                >
+                                    <UserPlus /> Add member
+                                </Button>
+                            ) : null}
+
+                            {permissions.canCreateInvitation ? (
+                                <Button
+                                    variant="outline"
+                                    data-test="invite-member-button"
+                                    onClick={() => setInviteDialogOpen(true)}
+                                >
+                                    Invite existing user
+                                </Button>
+                            ) : null}
+                        </div>
                     </div>
 
                     <div className="space-y-3">
@@ -231,6 +257,22 @@ export default function TeamEdit({
                                             {member.role_label}
                                         </Badge>
                                     )}
+
+                                    {member.role !== 'owner' &&
+                                        permissions.canUpdateMember && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                data-test="member-permissions-button"
+                                                onClick={() =>
+                                                    setPermissionsFor(member)
+                                                }
+                                            >
+                                                {member.has_custom_permissions
+                                                    ? 'Custom access'
+                                                    : 'Permissions'}
+                                            </Button>
+                                        )}
 
                                     {member.role !== 'owner' &&
                                     permissions.canRemoveMember ? (
@@ -361,6 +403,24 @@ export default function TeamEdit({
                 member={memberToRemove}
                 open={removeMemberDialogOpen}
                 onOpenChange={setRemoveMemberDialogOpen}
+            />
+
+            <CreateMemberModal
+                teamSlug={team.slug}
+                availableRoles={availableRoles}
+                catalogue={permissionCatalogue}
+                rolePermissions={rolePermissions}
+                open={createDialogOpen}
+                onOpenChange={setCreateDialogOpen}
+            />
+
+            <MemberPermissionsModal
+                teamSlug={team.slug}
+                member={permissionsFor}
+                catalogue={permissionCatalogue}
+                rolePermissions={rolePermissions}
+                open={permissionsFor !== null}
+                onOpenChange={(open) => !open && setPermissionsFor(null)}
             />
 
             <CancelInvitationModal

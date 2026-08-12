@@ -37,6 +37,19 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
+        /*
+         * The company every shared prop below describes.
+         *
+         * Falls back to any team the user belongs to, because a null current
+         * team must not blank the header. Staff created by their employer have
+         * no personal team, so there is nothing else to fall back to — and a
+         * page with no company name or logo reads as a broken application
+         * rather than a missing setting.
+         */
+        $team = $user === null
+            ? null
+            : $user->currentTeam ?? $user->fallbackTeam();
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -44,12 +57,21 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'currentTeam' => fn () => $user?->currentTeam ? $user->toUserTeam($user->currentTeam) : null,
-            'companyBrand' => fn () => $user?->currentTeam ? [
-                'name' => $user->currentTeam->name,
-                'logoUrl' => $user->currentTeam->logoUrl(),
-                'address' => $user->currentTeam->address,
-                'phone' => $user->currentTeam->phone,
+            // `$team` is only ever set when `$user` is, so one check covers both.
+            'currentTeam' => fn () => $team ? $user->toUserTeam($team) : null,
+
+            /*
+             * What this member may do, so the UI can hide what the server would
+             * refuse. Hiding is a courtesy only — `EnsureTeamPermission` on the
+             * route is what actually decides.
+             */
+            'can' => fn () => $team ? $user->toPermissionMap($team) : [],
+
+            'companyBrand' => fn () => $team ? [
+                'name' => $team->name,
+                'logoUrl' => $team->logoUrl(),
+                'address' => $team->address,
+                'phone' => $team->phone,
                 'currencySymbol' => config('company.currency_symbol'),
             ] : null,
             'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],

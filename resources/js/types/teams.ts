@@ -17,6 +17,16 @@ export type TeamMember = {
     avatar?: string | null;
     role: TeamRole;
     role_label: string;
+    /** What they may do — their own list, or the role's if they have none. */
+    permissions: string[];
+    /** Whether that list was chosen for them rather than inherited. */
+    has_custom_permissions: boolean;
+};
+
+/** One heading on the permissions dialog, from App\Enums\TeamPermission. */
+export type PermissionGroup = {
+    group: string;
+    permissions: Array<{ value: string; label: string }>;
 };
 
 export type TeamInvitation = {

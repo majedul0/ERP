@@ -22,6 +22,17 @@ class EnsureTeamMembership
 
         abort_if(! $user || ! $team || ! $user->belongsToTeam($team), 403);
 
+        /*
+         * A suspended company is closed to everyone in it, owner included.
+         * Nothing is deleted — the books wait for the suspension to be lifted
+         * from the platform panel.
+         */
+        abort_if(
+            $team->suspended_at !== null && ! $user->is_super_admin,
+            403,
+            __('This company is suspended. Please contact support.'),
+        );
+
         $this->ensureTeamMemberHasRequiredRole($user, $team, $minimumRole);
 
         if ($request->route('current_team') && ! $user->isCurrentTeam($team)) {
