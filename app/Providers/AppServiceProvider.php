@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Middleware\RedirectIfAuthenticated;
 use Illuminate\Foundation\Console\ServeCommand;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -26,6 +28,35 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureLocalServer();
+        $this->configureGuestRedirects();
+    }
+
+    /**
+     * Where an already-signed-in visitor goes when they open a guest page.
+     *
+     * Laravel's default is `route('dashboard')`, which cannot be built here:
+     * that route lives under `{current_team}`, and a platform administrator
+     * belongs to no company at all — so opening `/login` while signed in threw
+     * a UrlGenerationException instead of redirecting.
+     *
+     * Every account shape now has somewhere to land, and the guest pages stay
+     * reachable for everyone else.
+     */
+    protected function configureGuestRedirects(): void
+    {
+        RedirectIfAuthenticated::redirectUsing(function (Request $request): string {
+            $user = $request->user();
+
+            if ($user?->is_super_admin) {
+                return route('platform.index');
+            }
+
+            $team = $user === null
+                ? null
+                : $user->currentTeam ?? $user->fallbackTeam();
+
+            return $team ? "/{$team->slug}/dashboard" : '/';
+        });
     }
 
     /**
