@@ -73,6 +73,38 @@ class PaymentController extends Controller
     }
 
     /**
+     * Record a payment without having picked a distributor first.
+     *
+     * The distributor-scoped form above is reached from an account you are
+     * already looking at. This one is the dashboard's "Add Payment": the money
+     * has arrived and the person recording it starts from nothing, so the
+     * distributor is chosen here instead.
+     *
+     * Both post to `store`, so what a payment *is* has one definition.
+     */
+    public function record(Request $request): Response
+    {
+        $team = $this->currentTeam($request);
+
+        return Inertia::render('company/payments/record', [
+            'distributors' => $team->distributors()
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Distributor $distributor) => [
+                    'id' => $distributor->id,
+                    'name' => $distributor->name,
+                    'proprietorName' => $distributor->proprietor_name,
+                    'phone' => $distributor->phone,
+                    'district' => $distributor->district,
+                    'fullAddress' => $distributor->fullAddress(),
+                    'balance' => $distributor->balance,
+                ])
+                ->all(),
+            'banks' => $this->bankOptions($team),
+        ]);
+    }
+
+    /**
      * Record the payment and send the user back to the distributor's account.
      */
     public function store(SavePaymentRequest $request, CreatePayment $createPayment): RedirectResponse
