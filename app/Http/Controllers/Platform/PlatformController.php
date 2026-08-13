@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Platform;
 
 use App\Actions\Teams\CreateTeam;
+use App\Enums\SuspensionMode;
 use App\Http\Controllers\Controller;
+use App\Models\SubscriptionPayment;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\CompanyUsage;
@@ -12,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -78,6 +81,7 @@ class PlatformController extends Controller
     {
         $teams = Team::query()
             ->withTrashed()
+            ->with('plan')
             ->orderBy('name')
             ->get()
             ->map(fn (Team $team) => CompanyUsage::for($team))
@@ -85,11 +89,35 @@ class PlatformController extends Controller
 
         return Inertia::render('platform/index', [
             'companies' => $teams,
+            'plans' => SubscriptionController::planOptions(),
+            'suspensionModes' => SuspensionMode::options(),
             'totals' => [
                 'companies' => count($teams),
                 'suspended' => count(array_filter($teams, fn (array $c) => $c['isSuspended'])),
                 'storageBytes' => array_sum(array_column($teams, 'storageBytes')),
                 'users' => User::where('is_super_admin', false)->count(),
+
+                'overdue' => count(array_filter(
+                    $teams,
+                    fn (array $c) => $c['subscription']['isOverdue'],
+                )),
+
+                // What actually arrived this month, and what the book is worth
+                // per month if everyone keeps paying. The second is a
+                // projection and is labelled as one on the screen.
+                'collectedThisMonth' => (int) SubscriptionPayment::query()
+                    ->whereBetween('paid_on', [
+                        now()->startOfMonth()->toDateString(),
+                        now()->endOfMonth()->toDateString(),
+                    ])
+                    ->sum('amount'),
+
+                'monthlyValue' => Team::query()
+                    ->whereNull('suspended_at')
+                    ->whereNotNull('plan_id')
+                    ->with('plan')
+                    ->get()
+                    ->sum(fn (Team $team) => $team->plan?->monthlyValue() ?? 0),
             ],
         ]);
     }
@@ -168,9 +196,25 @@ class PlatformController extends Controller
      */
     public function suspend(Request $request, Team $team): RedirectResponse
     {
-        $suspend = $request->boolean('suspend');
+        $validated = $request->validate([
+            'suspend' => ['required', 'boolean'],
+            'mode' => ['nullable', Rule::enum(SuspensionMode::class)],
+        ]);
 
-        $team->update(['suspended_at' => $suspend ? now() : null]);
+        $suspend = (bool) $validated['suspend'];
+
+        $team->update([
+            'suspended_at' => $suspend ? now() : null,
+
+            /*
+             * The mode is only set when suspending, and left alone when
+             * lifting — so reinstating and later re-suspending keeps whatever
+             * was chosen last time rather than silently reverting.
+             */
+            ...$suspend && isset($validated['mode'])
+                ? ['suspension_mode' => SuspensionMode::from($validated['mode'])]
+                : [],
+        ]);
 
         Inertia::flash('toast', [
             'type' => 'success',
