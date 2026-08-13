@@ -9,11 +9,14 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Invoices\InvoiceController;
 use App\Http\Controllers\Payments\BankController;
 use App\Http\Controllers\Payments\PaymentController;
+use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlatformController;
+use App\Http\Controllers\Platform\SubscriptionController;
 use App\Http\Controllers\Products\ProductController;
 use App\Http\Controllers\RawMaterials\MaterialPurchaseController;
 use App\Http\Controllers\RawMaterials\RawMaterialController;
 use App\Http\Controllers\RawMaterials\StockLevelController;
+use App\Http\Controllers\SuspendedController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\Vendors\VendorBillController;
 use App\Http\Controllers\Vendors\VendorController;
@@ -44,12 +47,28 @@ Route::prefix('majedul')->group(function () {
         Route::get('companies', [PlatformController::class, 'index'])->name('platform.index');
         Route::post('companies', [PlatformController::class, 'store'])->name('platform.companies.store');
         Route::patch('companies/{team}/suspension', [PlatformController::class, 'suspend'])->name('platform.companies.suspend');
+        Route::patch('companies/{team}/plan', [SubscriptionController::class, 'assignPlan'])->name('platform.companies.plan');
+        Route::post('companies/{team}/payments', [SubscriptionController::class, 'store'])->name('platform.payments.store');
+        Route::put('payments/{payment}', [SubscriptionController::class, 'update'])->name('platform.payments.update');
+        Route::delete('payments/{payment}', [SubscriptionController::class, 'destroy'])->name('platform.payments.destroy');
+
+        Route::get('plans', [PlanController::class, 'index'])->name('platform.plans.index');
+        Route::post('plans', [PlanController::class, 'store'])->name('platform.plans.store');
+        Route::put('plans/{plan}', [PlanController::class, 'update'])->name('platform.plans.update');
         Route::patch('password', [PlatformController::class, 'updatePassword'])
             ->middleware('throttle:6,1')
             ->name('platform.password.update');
         Route::post('logout', [PlatformController::class, 'logout'])->name('platform.logout');
     });
 });
+
+/*
+ * Where a suspended company lands. Outside the `{current_team}` prefix, because
+ * the middleware that guards those routes is exactly what redirects here.
+ */
+Route::get('suspended', SuspendedController::class)
+    ->middleware('auth')
+    ->name('company.suspended');
 
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
@@ -149,6 +168,8 @@ Route::prefix('{current_team}')
             ->name('payments.index');
 
         Route::middleware(EnsureTeamPermission::class.':payment:manage')->group(function () {
+            // Declared before `{payment}` so the literal is never read as an id.
+            Route::get('finance/payments/record', [PaymentController::class, 'record'])->name('payments.record');
             Route::get('distributors/{distributor}/payments/create', [PaymentController::class, 'create'])->name('payments.create');
             Route::post('finance/payments', [PaymentController::class, 'store'])->name('payments.store');
             Route::get('finance/payments/{payment}/edit', [PaymentController::class, 'edit'])->name('payments.edit');
