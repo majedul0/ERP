@@ -1,6 +1,8 @@
-import { Form, Head, router } from '@inertiajs/react';
+import { Form, Head, Link, router } from '@inertiajs/react';
+import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import PlatformController from '@/actions/App/Http/Controllers/Platform/PlatformController';
+import SubscriptionController from '@/actions/App/Http/Controllers/Platform/SubscriptionController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,12 +13,47 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { formatAmount } from '@/lib/format';
 import { logout } from '@/routes/platform';
 import { suspend } from '@/routes/platform/companies';
+import { index as plansIndex } from '@/routes/platform/plans';
+
+const selectClasses =
+    'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-none';
+
+function today(): string {
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, '0');
+
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+type Plan = {
+    id: number;
+    name: string;
+    price: number;
+    period: string;
+    periodLabel: string;
+    isActive: boolean;
+};
+
+type Subscription = {
+    status: 'none' | 'unpaid' | 'active' | 'overdue';
+    paidThrough: string | null;
+    daysRemaining: number | null;
+    daysOverdue: number | null;
+    isOverdue: boolean;
+    needsAttention: boolean;
+};
 
 type Company = {
     id: number;
@@ -30,6 +67,10 @@ type Company = {
     receivable: number;
     storageBytes: number;
     lastInvoiceAt: string | null;
+    plan: Omit<Plan, 'isActive'> | null;
+    subscription: Subscription;
+    suspensionMode: string;
+    suspensionModeLabel: string;
 };
 
 const headCell =
@@ -49,26 +90,86 @@ function formatBytes(bytes: number): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** What the Status column says, and how loudly. */
+function SubscriptionCell({ company }: { company: Company }) {
+    const { subscription: sub } = company;
+
+    if (sub.status === 'none') {
+        return <span className="text-coffee-800/50">Not subscribed</span>;
+    }
+
+    if (sub.status === 'unpaid') {
+        return (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                Never paid
+            </span>
+        );
+    }
+
+    if (sub.isOverdue) {
+        return (
+            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
+                Overdue {sub.daysOverdue}d
+            </span>
+        );
+    }
+
+    return (
+        <span
+            className={
+                sub.needsAttention
+                    ? 'rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800'
+                    : 'rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800'
+            }
+        >
+            {sub.daysRemaining}d left
+        </span>
+    );
+}
+
+type SuspensionMode = {
+    value: string;
+    label: string;
+    description: string;
+};
+
 export default function PlatformIndex({
     companies,
+    plans,
+    suspensionModes,
     totals,
 }: {
     companies: Company[];
+    plans: Plan[];
+    suspensionModes: SuspensionMode[];
     totals: {
         companies: number;
         suspended: number;
         storageBytes: number;
         users: number;
+        overdue: number;
+        collectedThisMonth: number;
+        monthlyValue: number;
     };
 }) {
     const [createOpen, setCreateOpen] = useState(false);
     const [passwordOpen, setPasswordOpen] = useState(false);
+    const [payingFor, setPayingFor] = useState<Company | null>(null);
+
+    const sellable = plans.filter((plan) => plan.isActive);
 
     // Routed by slug, which is how the team is bound everywhere else.
-    const setSuspension = (company: Company, value: boolean) =>
+    const suspendAs = (company: Company, mode: string) =>
         router.patch(
             suspend(company.slug).url,
-            { suspend: value },
+            { suspend: true, mode },
+            { preserveScroll: true },
+        );
+
+    const reinstate = (company: Company) =>
+        router.patch(
+            suspend(company.slug).url,
+            { suspend: false },
             { preserveScroll: true },
         );
 
@@ -82,6 +183,14 @@ export default function PlatformIndex({
                         Platform administration
                     </h1>
                     <div className="flex items-center gap-2">
+                        <Button
+                            asChild
+                            variant="ghost"
+                            className="text-white hover:bg-white/10"
+                        >
+                            <Link href={plansIndex()}>Plans</Link>
+                        </Button>
+
                         <Dialog
                             open={passwordOpen}
                             onOpenChange={setPasswordOpen}
@@ -189,6 +298,17 @@ export default function PlatformIndex({
                 <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {[
                         { label: 'Companies', value: String(totals.companies) },
+                        { label: 'Overdue', value: String(totals.overdue) },
+                        {
+                            label: 'Collected this month',
+                            value: formatAmount(totals.collectedThisMonth),
+                        },
+                        {
+                            // A projection, not money in hand — named so it
+                            // cannot be mistaken for the figure above it.
+                            label: 'Monthly value',
+                            value: formatAmount(totals.monthlyValue),
+                        },
                         { label: 'Suspended', value: String(totals.suspended) },
                         { label: 'Users', value: String(totals.users) },
                         {
@@ -338,6 +458,9 @@ export default function PlatformIndex({
                                     <th className={`${headCell} text-right`}>
                                         Storage
                                     </th>
+                                    <th className={headCell}>Plan</th>
+                                    <th className={headCell}>Paid through</th>
+                                    <th className={headCell}>Subscription</th>
                                     <th className={headCell}>Status</th>
                                     <th className={headCell}>
                                         <span className="sr-only">Action</span>
@@ -406,10 +529,29 @@ export default function PlatformIndex({
                                             {formatBytes(company.storageBytes)}
                                         </td>
                                         <td className={bodyCell}>
+                                            {company.plan?.name ?? '—'}
+                                        </td>
+                                        <td className={bodyCell}>
+                                            {company.subscription.paidThrough ??
+                                                '—'}
+                                        </td>
+                                        <td className={bodyCell}>
+                                            <SubscriptionCell
+                                                company={company}
+                                            />
+                                        </td>
+                                        <td className={bodyCell}>
                                             {company.isSuspended ? (
-                                                <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
+                                                <span
+                                                    className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800"
+                                                    title={
+                                                        company.suspensionModeLabel
+                                                    }
+                                                >
                                                     Suspended{' '}
                                                     {company.suspendedAt}
+                                                    {company.suspensionMode !==
+                                                        'notice' && ' · silent'}
                                                 </span>
                                             ) : (
                                                 <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
@@ -418,25 +560,81 @@ export default function PlatformIndex({
                                             )}
                                         </td>
                                         <td className={bodyCell}>
-                                            <Button
-                                                size="sm"
-                                                variant={
-                                                    company.isSuspended
-                                                        ? 'outline'
-                                                        : 'destructive'
-                                                }
-                                                onClick={() =>
-                                                    setSuspension(
-                                                        company,
-                                                        !company.isSuspended,
-                                                    )
-                                                }
-                                                data-test="toggle-suspension"
-                                            >
-                                                {company.isSuspended
-                                                    ? 'Reinstate'
-                                                    : 'Suspend'}
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setPayingFor(company)
+                                                    }
+                                                    data-test="record-payment-button"
+                                                >
+                                                    Record payment
+                                                </Button>
+
+                                                {company.isSuspended ? (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            reinstate(company)
+                                                        }
+                                                        data-test="toggle-suspension"
+                                                    >
+                                                        Reinstate
+                                                    </Button>
+                                                ) : (
+                                                    /* A menu, not a button:
+                                                       closing a company and
+                                                       deciding what they are
+                                                       told are two choices. */
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger
+                                                            asChild
+                                                        >
+                                                            <Button
+                                                                size="sm"
+                                                                variant="destructive"
+                                                                data-test="toggle-suspension"
+                                                            >
+                                                                Suspend
+                                                                <ChevronDown className="ml-1 size-3.5 opacity-70" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            {suspensionModes.map(
+                                                                (mode) => (
+                                                                    <DropdownMenuItem
+                                                                        key={
+                                                                            mode.value
+                                                                        }
+                                                                        onSelect={() =>
+                                                                            suspendAs(
+                                                                                company,
+                                                                                mode.value,
+                                                                            )
+                                                                        }
+                                                                        data-test="suspension-mode"
+                                                                    >
+                                                                        <span>
+                                                                            <span className="font-medium">
+                                                                                {
+                                                                                    mode.label
+                                                                                }
+                                                                            </span>
+                                                                            <span className="block text-xs text-muted-foreground">
+                                                                                {
+                                                                                    mode.description
+                                                                                }
+                                                                            </span>
+                                                                        </span>
+                                                                    </DropdownMenuItem>
+                                                                ),
+                                                            )}
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -448,9 +646,144 @@ export default function PlatformIndex({
                 <p className="mt-4 text-xs text-coffee-800/60">
                     Suspending closes a company to everyone in it, owner
                     included. Nothing is deleted — their books wait for the
-                    suspension to be lifted.
+                    suspension to be lifted. An overdue subscription warns the
+                    company but never locks them out on its own.
                 </p>
             </main>
+
+            {/* Recording a payment moves the paid-through date; the date is
+                recomputed from the payments, so a correction fixes it too. */}
+            <Dialog
+                open={payingFor !== null}
+                onOpenChange={(open) => !open && setPayingFor(null)}
+            >
+                <DialogContent>
+                    <DialogTitle>
+                        Record payment from {payingFor?.name}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {payingFor?.subscription.paidThrough
+                            ? `Paid through ${payingFor.subscription.paidThrough}. A new payment continues from there, so paying late does not give away the months they went without.`
+                            : 'This will be their first payment, so the period starts on the day they paid.'}
+                    </DialogDescription>
+
+                    {payingFor && (
+                        <Form
+                            {...SubscriptionController.store.form(
+                                payingFor.slug,
+                            )}
+                            options={{ preserveScroll: true }}
+                            onSuccess={() => setPayingFor(null)}
+                            resetOnSuccess
+                            className="space-y-4"
+                        >
+                            {({ processing, errors }) => (
+                                <>
+                                    <div className="grid gap-1.5">
+                                        <Label htmlFor="plan_id">Plan</Label>
+                                        <select
+                                            id="plan_id"
+                                            name="plan_id"
+                                            className={selectClasses}
+                                            defaultValue={
+                                                payingFor.plan?.id ?? ''
+                                            }
+                                        >
+                                            <option value="">
+                                                No plan — record money only
+                                            </option>
+                                            {sellable.map((plan) => (
+                                                <option
+                                                    key={plan.id}
+                                                    value={plan.id}
+                                                >
+                                                    {plan.name} ·{' '}
+                                                    {formatAmount(plan.price)} ·{' '}
+                                                    {plan.periodLabel}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <p className="text-xs text-muted-foreground">
+                                            The plan decides how long this
+                                            payment buys.
+                                        </p>
+                                        <InputError message={errors.plan_id} />
+                                    </div>
+
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <div className="grid gap-1.5">
+                                            <Label htmlFor="amount">
+                                                Amount
+                                            </Label>
+                                            <Input
+                                                id="amount"
+                                                name="amount"
+                                                type="number"
+                                                min={1}
+                                                step={1}
+                                                required
+                                                defaultValue={
+                                                    payingFor.plan?.price ?? ''
+                                                }
+                                            />
+                                            <InputError
+                                                message={errors.amount}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-1.5">
+                                            <Label htmlFor="paid_on">
+                                                Paid on
+                                            </Label>
+                                            <Input
+                                                id="paid_on"
+                                                name="paid_on"
+                                                type="date"
+                                                required
+                                                defaultValue={today()}
+                                            />
+                                            <InputError
+                                                message={errors.paid_on}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-1.5">
+                                        <Label htmlFor="method">Method</Label>
+                                        <Input
+                                            id="method"
+                                            name="method"
+                                            placeholder="bKash, bank transfer, cash"
+                                        />
+                                        <InputError message={errors.method} />
+                                    </div>
+
+                                    <div className="grid gap-1.5">
+                                        <Label htmlFor="note">Note</Label>
+                                        <Input
+                                            id="note"
+                                            name="note"
+                                            placeholder="Optional — reference number"
+                                        />
+                                        <InputError message={errors.note} />
+                                    </div>
+
+                                    <DialogFooter>
+                                        <Button
+                                            type="submit"
+                                            disabled={processing}
+                                            data-test="save-payment-button"
+                                        >
+                                            {processing && <Spinner />}
+                                            Record payment
+                                        </Button>
+                                    </DialogFooter>
+                                </>
+                            )}
+                        </Form>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
