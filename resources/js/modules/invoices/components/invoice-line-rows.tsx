@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import SearchSelect from '@/components/search-select';
 import { Input } from '@/components/ui/input';
 import { formatAmount } from '@/lib/format';
 import type { InvoiceProductOption } from '@/modules/products';
@@ -8,9 +9,6 @@ import type { InvoiceLineDraft } from '../types';
 const headCell =
     'bg-coffee-500 px-3 py-2.5 text-left text-xs font-bold tracking-wide text-white uppercase';
 const cell = 'px-3 py-3 align-top';
-
-const selectClasses =
-    'h-9 w-full min-w-[14rem] rounded-md border border-input bg-transparent px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-none';
 
 type Props = {
     lines: InvoiceLineView[];
@@ -55,27 +53,26 @@ export default function InvoiceLineRows({
                             </td>
 
                             <td className={cell}>
-                                <select
-                                    className={selectClasses}
-                                    value={line.productId ?? ''}
-                                    onChange={(event) =>
-                                        onUpdate(line.key, {
-                                            productId: event.target.value
-                                                ? Number(event.target.value)
-                                                : null,
-                                        })
+                                {/*
+                                    Searchable by name or SKU, with the stock
+                                    on hand beside each — the two things
+                                    somebody needs to pick the right line.
+                                */}
+                                <SearchSelect
+                                    className="min-w-[16rem]"
+                                    aria-label="Product"
+                                    options={products.map((product) => ({
+                                        value: product.id,
+                                        label: product.name,
+                                        hint: `${product.sku} · ${formatAmount(product.stockQuantity)} in stock`,
+                                    }))}
+                                    value={line.productId}
+                                    onChange={(productId) =>
+                                        onUpdate(line.key, { productId })
                                     }
-                                >
-                                    <option value="">Select a product…</option>
-                                    {products.map((product) => (
-                                        <option
-                                            key={product.id}
-                                            value={product.id}
-                                        >
-                                            {product.name} ({product.sku})
-                                        </option>
-                                    ))}
-                                </select>
+                                    placeholder="Search products…"
+                                    emptyText="No product matches that"
+                                />
                             </td>
 
                             <td className={cell}>
