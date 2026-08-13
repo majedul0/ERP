@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import InputError from '@/components/input-error';
+import SearchSelect from '@/components/search-select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
@@ -13,9 +14,6 @@ import DistributorSummary from './distributor-summary';
 import InvoiceField from './invoice-field';
 import InvoiceLineRows from './invoice-line-rows';
 import InvoiceTotals from './invoice-totals';
-
-const selectClasses =
-    'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-none';
 
 export type InvoicePayload = {
     sold_at: string;
@@ -167,25 +165,33 @@ export default function InvoiceForm({
                 </InvoiceField>
 
                 <InvoiceField label="Distributor:" htmlFor="distributor_id">
-                    <select
+                    {/*
+                        Searchable: a company with three hundred distributors
+                        cannot find one by scrolling, and the browser's own
+                        type-ahead only matches from the first letter.
+                    */}
+                    <SearchSelect
                         id="distributor_id"
-                        className={selectClasses}
-                        value={draft.distributorId ?? ''}
-                        onChange={(event) =>
-                            draft.setDistributorId(
-                                event.target.value
-                                    ? Number(event.target.value)
-                                    : null,
-                            )
-                        }
-                    >
-                        <option value="">Select a distributor…</option>
-                        {distributors.map((distributor) => (
-                            <option key={distributor.id} value={distributor.id}>
-                                {distributor.name}
-                            </option>
-                        ))}
-                    </select>
+                        aria-label="Distributor"
+                        options={distributors.map((distributor) => ({
+                            value: distributor.id,
+                            label: distributor.name,
+                            hint: distributor.district ?? undefined,
+                            // Findable by who runs it and where they are, not
+                            // just by the trading name.
+                            keywords: [
+                                distributor.proprietorName,
+                                distributor.phone,
+                                distributor.fullAddress,
+                            ]
+                                .filter(Boolean)
+                                .join(' '),
+                        }))}
+                        value={draft.distributorId}
+                        onChange={draft.setDistributorId}
+                        placeholder="Search distributors…"
+                        emptyText="No distributor matches that"
+                    />
                     <InputError message={errors.distributor_id} />
                 </InvoiceField>
 
