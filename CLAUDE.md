@@ -267,6 +267,30 @@ read, so correcting an invoice yesterday corrects last month's report. It delibe
 would be a guess dressed up as a figure. Balances (`standing`) are as of today and are not
 filtered by the period — "what is owed to us" has no date range.
 
+### The platform panel (`/majedul`)
+
+Whoever runs this system, as opposed to the companies using it. `users.is_super_admin` is a
+flag set only by `app:create-super-admin` — never mass-assignable, never reachable from a
+request. `EnsureSuperAdmin` redirects visitors to the platform login and answers **404** to a
+signed-in company user, so the panel does not announce itself to somebody who guessed the path.
+
+**Companies cannot create companies.** `TeamController::store` refuses anyone but a platform
+admin: the system is sold per company, and a customer minting more would make that meaningless.
+
+`teams.suspended_at` closes a company to everyone in it, owner included, via
+`EnsureTeamMembership`. Nothing is deleted — the books wait.
+
+Subscriptions follow the same rule the sales ledger learned: **`teams.paid_through` is derived,
+never incremented.** Each `subscription_payments` row records the period it bought
+(`covers_from`/`covers_to`), and `ReplaySubscription` recomputes the date as the latest
+`covers_to`. Correcting a payment therefore fixes the date, and deleting one gives the period
+back. `RecordSubscriptionPayment` starts coverage from the later of the current `paid_through`
+and the payment date, so paying late does not hand back the months they went without.
+
+`SubscriptionStatus` derives active/overdue in one place for both the panel and the banner
+inside the company. **The date never blocks anything** — only `suspended_at` does, and a person
+sets that.
+
 ### Queues (Horizon)
 
 Horizon only supports the **Redis** queue driver — switching `QUEUE_CONNECTION` to `database`
