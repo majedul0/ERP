@@ -11,7 +11,10 @@ import {
     index as invoicesIndex,
 } from '@/routes/invoices';
 import { index as materialsIndex } from '@/routes/materials';
-import { index as paymentsIndex } from '@/routes/payments';
+import {
+    index as paymentsIndex,
+    record as recordPayment,
+} from '@/routes/payments';
 import {
     index as productsIndex,
     create as newProduct,
@@ -187,6 +190,11 @@ export function companyQuickActions(
             label: 'Add Invoice',
             href: newInvoice(teamSlug).url,
             can: ['invoice:create'],
+        },
+        {
+            label: 'Add Payment',
+            href: recordPayment(teamSlug).url,
+            can: ['payment:manage'],
         },
         {
             label: 'Add Distributor',
