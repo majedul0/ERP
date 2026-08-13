@@ -26,7 +26,21 @@ final class CompanyUsage
             'createdAt' => $team->created_at?->toDateString(),
             'suspendedAt' => $team->suspended_at?->toDateString(),
             'isSuspended' => $team->suspended_at !== null,
+            'suspensionMode' => $team->suspension_mode->value,
+            'suspensionModeLabel' => $team->suspension_mode->label(),
             'owner' => $team->owner()?->only(['name', 'email']),
+
+            'plan' => $team->plan ? [
+                'id' => $team->plan->id,
+                'name' => $team->plan->name,
+                'price' => $team->plan->price,
+                'period' => $team->plan->period->value,
+                'periodLabel' => $team->plan->period->label(),
+            ] : null,
+
+            // Derived from paid_through in one place, so the panel and the
+            // banner inside the company cannot disagree about "overdue".
+            'subscription' => SubscriptionStatus::for($team),
 
             'counts' => [
                 'members' => $team->memberships()->count(),
