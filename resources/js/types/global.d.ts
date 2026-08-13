@@ -21,6 +21,18 @@ declare module '@inertiajs/core' {
              * member has them. Read it through `useCan`, not directly.
              */
             can: Record<string, boolean>;
+            /**
+             * How long the current company is paid up for. Null outside a
+             * company. Warning only — it never gates access.
+             */
+            subscription: {
+                status: 'none' | 'unpaid' | 'active' | 'overdue';
+                paidThrough: string | null;
+                daysRemaining: number | null;
+                daysOverdue: number | null;
+                isOverdue: boolean;
+                needsAttention: boolean;
+            } | null;
             companyBrand: CompanyBrand | null;
             teams: Team[];
             [key: string]: unknown;
