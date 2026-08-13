@@ -12,10 +12,12 @@ createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: (name) => {
         switch (true) {
-            // The platform panel is not a company workspace and deliberately
-            // carries none of the company chrome.
+            // No company chrome on any of these. The platform panel is not a
+            // company workspace, and a suspended company gets no nav because
+            // every link would redirect straight back to the explanation.
             case name === 'welcome':
             case name.startsWith('platform/'):
+            case name === 'suspended':
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
