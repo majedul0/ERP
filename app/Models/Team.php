@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\GeneratesUniqueTeamSlugs;
+use App\Enums\SuspensionMode;
 use App\Enums\TeamRole;
 use App\Support\TenantFileStore;
 use Database\Factories\TeamFactory;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -24,6 +26,10 @@ use Illuminate\Support\Carbon;
  * @property string|null $phone
  * @property bool $is_personal
  * @property Carbon|null $suspended_at
+ * @property SuspensionMode $suspension_mode
+ * @property int|null $plan_id
+ * @property Carbon|null $paid_through
+ * @property-read Plan|null $plan
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -36,7 +42,19 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Bank> $banks
  * @property-read Collection<int, Payment> $payments
  */
-#[Fillable(['name', 'slug', 'logo_path', 'address', 'phone', 'is_personal', 'suspended_at'])]
+#[Fillable([
+    'name',
+    'slug',
+    'logo_path',
+    'address',
+    'phone',
+    'is_personal',
+    'suspended_at',
+    'suspension_mode',
+    'plan_id',
+    // Written only by ReplaySubscription — see the migration that added it.
+    'paid_through',
+])]
 class Team extends Model
 {
     /** @use HasFactory<TeamFactory> */
@@ -136,6 +154,22 @@ class Team extends Model
     }
 
     /**
+     * @return BelongsTo<Plan, $this>
+     */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
+    }
+
+    /**
+     * @return HasMany<SubscriptionPayment, $this>
+     */
+    public function subscriptionPayments(): HasMany
+    {
+        return $this->hasMany(SubscriptionPayment::class);
+    }
+
+    /**
      * @return HasMany<Expense, $this>
      */
     public function expenses(): HasMany
@@ -217,6 +251,8 @@ class Team extends Model
         return [
             'is_personal' => 'boolean',
             'suspended_at' => 'datetime',
+            'suspension_mode' => SuspensionMode::class,
+            'paid_through' => 'date',
         ];
     }
 
