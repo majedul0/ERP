@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\SubscriptionStatus;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -74,6 +75,15 @@ class HandleInertiaRequests extends Middleware
                 'phone' => $team->phone,
                 'currencySymbol' => config('company.currency_symbol'),
             ] : null,
+            /*
+             * How long this company is paid up for, so they get fair warning
+             * before the date and know why afterwards.
+             *
+             * Warning only — nothing here blocks a page. Access is governed
+             * solely by `teams.suspended_at`, which a person sets deliberately.
+             */
+            'subscription' => fn () => $team ? SubscriptionStatus::for($team) : null,
+
             'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],
         ];
     }
