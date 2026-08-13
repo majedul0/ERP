@@ -150,9 +150,10 @@ class PlatformAdminTest extends TestCase
 
         $this->assertNotNull($team->fresh()->suspended_at);
 
+        // Closed, but to a page that explains why rather than a bare 403.
         $this->actingAs($owner)
             ->get(route('dashboard', ['current_team' => $team->slug]))
-            ->assertForbidden();
+            ->assertRedirect(route('company.suspended'));
     }
 
     public function test_reinstating_gives_the_company_back_untouched()
