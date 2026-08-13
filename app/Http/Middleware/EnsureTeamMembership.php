@@ -26,12 +26,26 @@ class EnsureTeamMembership
          * A suspended company is closed to everyone in it, owner included.
          * Nothing is deleted — the books wait for the suspension to be lifted
          * from the platform panel.
+         *
+         * Redirected to a page that explains it rather than aborting: a bare
+         * 403 reads as broken software, and somebody closed for non-payment
+         * needs to know that is what happened. A JSON caller still gets the
+         * status code, since there is nobody to read a page.
          */
-        abort_if(
-            $team->suspended_at !== null && ! $user->is_super_admin,
-            403,
-            __('This company is suspended. Please contact support.'),
-        );
+        if ($team->suspended_at !== null && ! $user->is_super_admin) {
+            abort_if($request->expectsJson(), 403, __('This company is suspended.'));
+
+            /*
+             * How this is presented is the platform owner's choice — see
+             * App\Enums\SuspensionMode. `notice` explains; the others answer
+             * with a bare status and tell the company nothing.
+             */
+            $status = $team->suspension_mode->status();
+
+            abort_if($status !== null, $status);
+
+            return redirect()->route('company.suspended');
+        }
 
         $this->ensureTeamMemberHasRequiredRole($user, $team, $minimumRole);
 
