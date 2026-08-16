@@ -167,6 +167,20 @@ Route::prefix('{current_team}')
             Route::get('raw-materials', [RawMaterialController::class, 'index'])->name('materials.index');
         });
 
+        /*
+         * `distributors/create` must be declared before `distributors/{distributor}`.
+         *
+         * Routes match in registration order, so the other way round the
+         * literal `create` is read as a distributor id — which on Postgres is a
+         * 500 (`invalid input syntax for type bigint`), not a 404. It reached
+         * production that way once; the test in ReachableScreensTest opens
+         * every create screen so it cannot again.
+         */
+        Route::middleware(EnsureTeamPermission::class.':distributor:manage')->group(function () {
+            Route::get('distributors/create', [DistributorController::class, 'create'])->name('distributors.create');
+            Route::post('distributors', [DistributorController::class, 'store'])->name('distributors.store');
+        });
+
         Route::middleware(EnsureTeamPermission::class.':distributor:view,distributor:manage')->group(function () {
             Route::get('distributors', [DistributorController::class, 'index'])->name('distributors.index');
             Route::get('distributors/{distributor}', [DistributorController::class, 'show'])->name('distributors.show');
@@ -177,8 +191,6 @@ Route::prefix('{current_team}')
         });
 
         Route::middleware(EnsureTeamPermission::class.':distributor:manage')->group(function () {
-            Route::get('distributors/create', [DistributorController::class, 'create'])->name('distributors.create');
-            Route::post('distributors', [DistributorController::class, 'store'])->name('distributors.store');
             Route::get('distributors/{distributor}/edit', [DistributorController::class, 'edit'])->name('distributors.edit');
             Route::put('distributors/{distributor}', [DistributorController::class, 'update'])->name('distributors.update');
             Route::delete('distributors/{distributor}', [DistributorController::class, 'destroy'])->name('distributors.destroy');
