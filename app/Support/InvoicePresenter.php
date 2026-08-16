@@ -17,6 +17,16 @@ use Illuminate\Support\Carbon;
 final class InvoicePresenter
 {
     /**
+     * What this invoice alone comes to — the same figure the ledger charges.
+     */
+    private static function netAmount(Invoice $invoice): int
+    {
+        return $invoice->invoice_total
+            - $invoice->discount_total
+            - $invoice->scheme_amount;
+    }
+
+    /**
      * A row in a list — the dashboard's Today's Sales, for instance.
      *
      * @return array<string, mixed>
@@ -36,7 +46,28 @@ final class InvoicePresenter
             // When the invoice was actually written. This is the only real
             // clock reading an invoice has.
             'createdAt' => $invoice->created_at?->toIso8601String(),
-            'amount' => $invoice->total_amount,
+
+            /*
+             * What the invoice prints as its Total Amount.
+             *
+             * Normally that is `total_amount` — the goods plus what was already
+             * owed — because that is the figure on the paper the distributor
+             * holds. But an invoice printed without its dues line totals the
+             * goods alone, and `total_amount` still carries the dues into it.
+             *
+             * Reading the stored column regardless made the list disagree with
+             * the paper on exactly those invoices, and read absurdly when the
+             * account was in credit: a 60,000 sale against a 60,000 advance
+             * printed 60,000 and listed as 0. The account is unaffected either
+             * way — `previous_dues` and the statement are untouched. This
+             * decides one column.
+             */
+            'amount' => $invoice->hide_previous_dues
+                ? self::netAmount($invoice)
+                : $invoice->total_amount,
+
+            /** The goods alone, whatever the invoice chose to print. */
+            'netAmount' => self::netAmount($invoice),
             'deliveryStatus' => $invoice->delivery_status->value,
             'detailUrl' => "/{$teamSlug}/sales/invoices/{$invoice->id}",
         ];
@@ -86,9 +117,7 @@ final class InvoicePresenter
              * charges — and is what the printed total falls back to.
              */
             'hidePreviousDues' => $invoice->hide_previous_dues,
-            'netAmount' => $invoice->invoice_total
-                - $invoice->discount_total
-                - $invoice->scheme_amount,
+            'netAmount' => self::netAmount($invoice),
 
             'totalAmount' => $invoice->total_amount,
             'createdBy' => $invoice->creator?->name,

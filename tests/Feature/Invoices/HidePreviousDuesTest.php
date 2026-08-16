@@ -134,6 +134,59 @@ class HidePreviousDuesTest extends TestCase
             );
     }
 
+    /**
+     * The list must agree with the paper.
+     *
+     * An invoice printed without its dues line totals the goods alone, so that
+     * is what the Amount column shows for it. Reading `total_amount` regardless
+     * made the two disagree, and read absurdly when the account was in credit:
+     * a sale settled by an equal advance printed its full value and listed as
+     * zero.
+     */
+    public function test_a_hidden_invoice_lists_the_amount_it_prints()
+    {
+        // A 2,000 advance, then a 500 sale against it. The account is in
+        // credit, so `total_amount` for the sale is negative.
+        $this->actingAs($this->user)->post(
+            route('payments.store', ['current_team' => $this->team->slug]),
+            [
+                'distributor_id' => $this->distributor->id,
+                'amount' => 2_000,
+                'paid_on' => now()->subDay()->toDateString(),
+            ],
+        )->assertSessionHasNoErrors();
+
+        $hidden = $this->create(5, ['hide_previous_dues' => true]);
+
+        // The stored figures are untouched — the account still knows.
+        $this->assertSame(-2_000, $hidden->previous_dues);
+        $this->assertSame(-1_500, $hidden->total_amount);
+
+        $this->actingAs($this->user)
+            ->get(route('invoices.index', ['current_team' => $this->team->slug]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                // 500 — the goods, which is what the paper says.
+                ->where('invoices.0.amount', 500)
+                ->where('invoices.0.netAmount', 500),
+            );
+    }
+
+    public function test_an_ordinary_invoice_still_lists_its_printed_total()
+    {
+        $this->create(10);
+        $this->create(5);
+
+        $this->actingAs($this->user)
+            ->get(route('invoices.index', ['current_team' => $this->team->slug]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                // Goods plus what was already owed, exactly as printed.
+                ->where('invoices.0.amount', 1_500)
+                ->where('invoices.0.netAmount', 500),
+            );
+    }
+
     public function test_it_defaults_to_showing_the_account()
     {
         $invoice = $this->create(10);

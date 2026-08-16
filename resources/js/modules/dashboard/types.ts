@@ -29,7 +29,13 @@ export type TodaySale = {
     saleDate: string;
     /** ISO 8601 timestamp of when the invoice was written. */
     createdAt: string | null;
+    /**
+     * What the invoice prints as its Total Amount — the goods plus any dues it
+     * carried, or the goods alone when it was printed without a dues line.
+     */
     amount: number;
+    /** The goods alone, whatever the invoice chose to print. */
+    netAmount: number;
     deliveryStatus: DeliveryStatus;
     detailUrl: string | null;
 };
