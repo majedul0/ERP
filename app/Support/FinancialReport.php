@@ -65,13 +65,26 @@ final class FinancialReport
         $discounts = (int) ($totals->discounts ?? 0);
         $schemes = (int) ($totals->schemes ?? 0);
 
+        /*
+         * Returns are counted on the day the goods came back, not against the
+         * invoice that sold them. A sale in March returned in April belongs to
+         * March's sales and April's returns — restating a closed month because
+         * of something that happened later is how a report stops matching the
+         * statement it was printed from.
+         */
+        $returns = (int) $team->salesReturns()
+            ->whereBetween('returned_on', [$from->toDateString(), $to->toDateString()])
+            ->sum('return_total');
+
         return [
             'invoiceCount' => (clone $live)->count(),
             'gross' => $gross,
             'discounts' => $discounts,
             'schemes' => $schemes,
-            // What the distributors were actually charged.
-            'net' => $gross - $discounts - $schemes,
+            'returns' => $returns,
+            // What the distributors were actually charged, less what they sent
+            // back.
+            'net' => $gross - $discounts - $schemes - $returns,
         ];
     }
 

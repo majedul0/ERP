@@ -21,6 +21,7 @@ import {
 } from '@/routes/products';
 import { index as purchasesIndex } from '@/routes/purchases';
 import { index as reportsIndex } from '@/routes/reports';
+import { index as returnsIndex, create as newReturn } from '@/routes/returns';
 import { index as stockLevelsIndex } from '@/routes/stock-levels';
 import { index as vendorPaymentsIndex } from '@/routes/vendor-payments';
 import { index as vendorsIndex, create as newVendor } from '@/routes/vendors';
@@ -89,7 +90,16 @@ export function companyNavItems(
                         href: paymentsIndex(teamSlug).url,
                         can: ['payment:view', 'payment:manage'],
                     },
-                    { title: 'Sales Returns' },
+                    {
+                        title: 'Sales Returns',
+                        href: returnsIndex(teamSlug).url,
+                        can: ['return:view', 'return:manage'],
+                    },
+                    {
+                        title: 'New Return',
+                        href: newReturn(teamSlug).url,
+                        can: ['return:manage'],
+                    },
                 ],
             },
             {

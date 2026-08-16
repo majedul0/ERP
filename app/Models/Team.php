@@ -39,6 +39,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Distributor> $distributors
  * @property-read Collection<int, Product> $products
  * @property-read Collection<int, Invoice> $invoices
+ * @property-read Collection<int, SalesReturn> $salesReturns
  * @property-read Collection<int, Bank> $banks
  * @property-read Collection<int, Payment> $payments
  */
@@ -223,6 +224,14 @@ class Team extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    /**
+     * @return HasMany<SalesReturn, $this>
+     */
+    public function salesReturns(): HasMany
+    {
+        return $this->hasMany(SalesReturn::class);
     }
 
     /**

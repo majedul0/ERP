@@ -26,6 +26,8 @@ export type FinancialReport = {
         gross: number;
         discounts: number;
         schemes: number;
+        /** Goods sent back during the period, whenever they were sold. */
+        returns: number;
         net: number;
     };
     money: {

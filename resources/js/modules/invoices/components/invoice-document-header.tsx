@@ -5,10 +5,12 @@ import type { DistributorContact } from '../types';
 
 type Props = {
     brand: CompanyBrand;
-    /** `Invoice` or `Challan` — the same masthead serves both. */
+    /** `Invoice`, `Challan` or `Return Invoice` — one masthead serves them all. */
     title: string;
     invoiceNumber: string;
     soldAt: string;
+    /** What the date is called on this document. */
+    dateLabel?: string;
     distributor: DistributorContact;
     /** Extra lines beside the sale date, e.g. status or who issued it. */
     meta?: Array<{ label: string; value: string }>;
@@ -26,6 +28,7 @@ export default function InvoiceDocumentHeader({
     title,
     invoiceNumber,
     soldAt,
+    dateLabel = 'Sale Date',
     distributor,
     meta = [],
 }: Props) {
@@ -70,7 +73,7 @@ export default function InvoiceDocumentHeader({
                 <div className="text-right text-sm text-coffee-800/80">
                     <p>
                         <span className="font-bold text-coffee-900">
-                            Sale Date:
+                            {dateLabel}:
                         </span>{' '}
                         {formatSaleDate(soldAt)}
                     </p>

@@ -115,6 +115,7 @@ class ReportController extends Controller
             ['Gross', $sales['gross']],
             ['Discounts', $sales['discounts']],
             ['Schemes', $sales['schemes']],
+            ['Returns', $sales['returns']],
             ['Net charged', $sales['net']],
             [],
             ['Money'],

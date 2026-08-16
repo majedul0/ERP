@@ -42,11 +42,11 @@ export type InvoicePayment = {
 
 /**
  * One line of a distributor's running account. A debit is what they were
- * charged, a credit what they paid, and `balanceAfter` what they owed once the
- * line landed.
+ * charged, a credit what settled it — money paid, or goods returned — and
+ * `balanceAfter` what they owed once the line landed.
  */
 export type StatementEntry = {
-    type: 'invoice' | 'payment';
+    type: 'invoice' | 'payment' | 'return';
     id: number;
     /** `YYYY-MM-DD`. Ledger lines are dated, not timed. */
     occurredOn: string;

@@ -30,6 +30,11 @@ enum TeamPermission: string
     case UpdateInvoice = 'invoice:update';
     case DeleteInvoice = 'invoice:delete';
 
+    // Goods sent back. Separate from invoicing because crediting an account is
+    // a different act from selling to it — and one worth restricting.
+    case ViewReturns = 'return:view';
+    case ManageReturns = 'return:manage';
+
     // Money received.
     case ViewPayments = 'payment:view';
     case ManagePayments = 'payment:manage';
@@ -67,6 +72,9 @@ enum TeamPermission: string
             self::UpdateInvoice => 'Edit invoices and delivery status',
             self::DeleteInvoice => 'Delete invoices',
 
+            self::ViewReturns => 'View sales returns',
+            self::ManageReturns => 'Record, edit and delete sales returns',
+
             self::ViewPayments => 'View payments received',
             self::ManagePayments => 'Record, edit and delete payments',
 
@@ -98,6 +106,8 @@ enum TeamPermission: string
 
             self::ViewInvoices, self::CreateInvoice,
             self::UpdateInvoice, self::DeleteInvoice => 'Sales',
+
+            self::ViewReturns, self::ManageReturns => 'Sales returns',
 
             self::ViewPayments, self::ManagePayments => 'Payments received',
 

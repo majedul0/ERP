@@ -47,6 +47,22 @@ return [
         'starting_number' => (int) env('INVOICE_STARTING_NUMBER', 1),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Sales Return Numbering
+    |--------------------------------------------------------------------------
+    |
+    | Its own series, allocated the same way — see App\Support\ReturnNumbers.
+    | Returns and invoices are numbered independently, so RNV1 and INV1 both
+    | exist and neither series has gaps caused by the other.
+    |
+    */
+
+    'returns' => [
+        'number_prefix' => env('RETURN_NUMBER_PREFIX', 'RNV'),
+        'starting_number' => (int) env('RETURN_STARTING_NUMBER', 1),
+    ],
+
     'storage' => [
 
         'product_photos' => [

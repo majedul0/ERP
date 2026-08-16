@@ -6,10 +6,17 @@ use App\Data\LedgerEntry;
 use App\Models\Distributor;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\SalesReturn;
 
 /**
- * A distributor's running account: every invoice they were charged and every
- * payment they made, in the order those things happened.
+ * A distributor's running account: every invoice they were charged, every
+ * payment they made and every return they sent back, in the order those things
+ * happened.
+ *
+ * A return is a credit, exactly like a payment: no money arrived, but the goods
+ * did, and the distributor stops owing for them. It is not a negative invoice —
+ * treating it as one would let a return quietly reduce what the sales figures
+ * say was sold on the day the goods went out.
  *
  * This is the single ordering in the system. The statement renders it, and
  * `RecalculateDistributorBalance` writes the same walk back onto the invoices
@@ -64,6 +71,11 @@ final class DistributorLedger
             ->when($lock, fn ($query) => $query->lockForUpdate())
             ->get();
 
+        $returns = SalesReturn::query()
+            ->where('distributor_id', $distributor->id)
+            ->when($lock, fn ($query) => $query->lockForUpdate())
+            ->get();
+
         $rows = [];
 
         foreach ($invoices as $invoice) {
@@ -104,6 +116,24 @@ final class DistributorLedger
                 'description' => $payment->comment ?: 'Payment received',
                 'debit' => 0,
                 'credit' => $payment->amount,
+            ];
+        }
+
+        foreach ($returns as $return) {
+            $rows[] = [
+                'sortDate' => $return->returned_on->format('Y-m-d'),
+                'sortEnteredAt' => $return->created_at?->format('Y-m-d H:i:s.u') ?? '',
+                'sortGroup' => 2,
+                'sortId' => $return->id,
+                'type' => 'return',
+                'id' => $return->id,
+                'occurredOn' => $return->returned_on,
+                'reference' => $return->return_number,
+                'description' => $return->comment ?: 'Goods returned',
+                'debit' => 0,
+                // A credit, not a negative charge: what came back reduces what
+                // is owed, and the invoice that sold it stays as it was.
+                'credit' => $return->return_total,
             ];
         }
 

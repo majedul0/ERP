@@ -168,6 +168,10 @@ export default function Reports({ report }: { report: FinancialReport }) {
                             value={money(report.sales.schemes)}
                         />
                         <Row
+                            label="Returns"
+                            value={money(report.sales.returns)}
+                        />
+                        <Row
                             label="Net charged"
                             value={money(report.sales.net)}
                             emphasis
@@ -175,7 +179,8 @@ export default function Reports({ report }: { report: FinancialReport }) {
                     </dl>
                     <p className="mt-3 text-xs text-coffee-800/60">
                         Cancelled and returned invoices are excluded — a void
-                        sale is not revenue.
+                        sale is not revenue. Returns count on the day the goods
+                        came back, not against the month that sold them.
                     </p>
                 </section>
 

@@ -16,6 +16,7 @@ use App\Http\Controllers\Products\ProductController;
 use App\Http\Controllers\RawMaterials\MaterialPurchaseController;
 use App\Http\Controllers\RawMaterials\RawMaterialController;
 use App\Http\Controllers\RawMaterials\StockLevelController;
+use App\Http\Controllers\SalesReturns\SalesReturnController;
 use App\Http\Controllers\SuspendedController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\Vendors\VendorBillController;
@@ -116,6 +117,26 @@ Route::prefix('{current_team}')
         Route::delete('sales/invoices/{invoice}', [InvoiceController::class, 'destroy'])
             ->middleware(EnsureTeamPermission::class.':invoice:delete')
             ->name('invoices.destroy');
+
+        /*
+         * Sales returns. `create` is declared before `{return}` for the same
+         * reason invoices are — otherwise the literal is read as an id.
+         */
+        Route::middleware(EnsureTeamPermission::class.':return:manage')->group(function () {
+            Route::get('sales/returns/create', [SalesReturnController::class, 'create'])->name('returns.create');
+            Route::post('sales/returns', [SalesReturnController::class, 'store'])->name('returns.store');
+        });
+
+        Route::middleware(EnsureTeamPermission::class.':return:view,return:manage')->group(function () {
+            Route::get('sales/returns', [SalesReturnController::class, 'index'])->name('returns.index');
+            Route::get('sales/returns/{return}', [SalesReturnController::class, 'show'])->name('returns.show');
+        });
+
+        Route::middleware(EnsureTeamPermission::class.':return:manage')->group(function () {
+            Route::get('sales/returns/{return}/edit', [SalesReturnController::class, 'edit'])->name('returns.edit');
+            Route::put('sales/returns/{return}', [SalesReturnController::class, 'update'])->name('returns.update');
+            Route::delete('sales/returns/{return}', [SalesReturnController::class, 'destroy'])->name('returns.destroy');
+        });
 
         Route::get('products', [ProductController::class, 'index'])
             ->middleware(EnsureTeamPermission::class.':product:view,product:manage')
