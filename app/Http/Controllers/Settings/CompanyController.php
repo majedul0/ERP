@@ -8,7 +8,9 @@ use App\Actions\Teams\UpdateTeam;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\CompanyLogoRequest;
 use App\Http\Requests\Settings\CompanyProfileRequest;
+use App\Http\Requests\Settings\CompanyThemeRequest;
 use App\Models\Team;
+use App\Support\BrandColor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -37,6 +39,16 @@ class CompanyController extends Controller
                 'logoUrl' => $team->logoUrl(),
                 'address' => $team->address,
                 'phone' => $team->phone,
+
+                /*
+                 * The colour as chosen, not as painted. The form edits what
+                 * they picked; BrandColor decides what the screens get.
+                 */
+                'themeColor' => $team->theme_color,
+                'themeRgb' => BrandColor::toRgb($team->theme_color ?? BrandColor::DEFAULT),
+                'usesDefaultTheme' => $team->theme_color === null,
+                'defaultThemeColor' => BrandColor::DEFAULT,
+                'appliedThemeColor' => $team->themeColor() ?? BrandColor::DEFAULT,
             ],
             'canUpdate' => Gate::allows('update', $team),
             'maxLogoKilobytes' => (int) config('company.storage.logos.max_kilobytes'),
@@ -55,6 +67,36 @@ class CompanyController extends Controller
         $updateTeam->handle($team, $request->validated());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Company details updated.')]);
+
+        return to_route('company.edit');
+    }
+
+    /**
+     * Set the company's colour, or clear it back to the house palette.
+     *
+     * Goes through UpdateTeam like the name does, so the row is locked and one
+     * person saving a colour cannot land on top of another saving a rename.
+     */
+    public function updateTheme(CompanyThemeRequest $request, UpdateTeam $updateTeam): RedirectResponse
+    {
+        $team = $this->currentTeam($request);
+
+        Gate::authorize('update', $team);
+
+        $updateTeam->handle($team, [
+            'theme_color' => $request->clearsTheme() ? null : BrandColor::fromRgb(
+                (int) $request->validated('red'),
+                (int) $request->validated('green'),
+                (int) $request->validated('blue'),
+            ),
+        ]);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => $request->clearsTheme()
+                ? __('Theme colour reset.')
+                : __('Theme colour updated.'),
+        ]);
 
         return to_route('company.edit');
     }
