@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Finance;
 
 use App\Concerns\ResolvesCurrentTeam;
 use App\Http\Controllers\Controller;
+use App\Support\FinancialAnalytics;
 use App\Support\FinancialReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -21,8 +22,23 @@ class ReportController extends Controller
         $team = $this->currentTeam($request);
         [$from, $to] = $this->period($request);
 
+        [$granularity, $analyticsFrom, $analyticsTo] = $this->analyticsPeriod($request);
+
+        /*
+         * Both closures: changing the trend band's period reloads `analytics`
+         * alone, and there is no reason for that visit to rebuild the report
+         * underneath it — or the other way round.
+         */
         return Inertia::render('company/finance/reports/index', [
-            'report' => FinancialReport::build($team, $from, $to),
+            'report' => fn () => FinancialReport::build($team, $from, $to),
+
+            /*
+             * The trend band on top, which asks its own question over its own
+             * stretch of time: the report below states one period exactly, and
+             * a chart of one period is a single point.
+             */
+            'analytics' => fn () => FinancialAnalytics::build($team, $granularity, $analyticsFrom, $analyticsTo),
+            'yearOptions' => $this->yearOptions(),
         ]);
     }
 
@@ -86,6 +102,60 @@ class ReportController extends Controller
         }
 
         return [$from, $to];
+    }
+
+    /**
+     * The stretch of time the trend band covers, and how it is cut up.
+     *
+     * Separate from the report's `from`/`to` on purpose. Those default to this
+     * month, which is the question somebody reconciling the books has; a chart
+     * needs a run of months before it says anything at all.
+     *
+     * @return array{0: 'monthly'|'yearly', 1: Carbon, 2: Carbon}
+     */
+    private function analyticsPeriod(Request $request): array
+    {
+        $earliest = FinancialAnalytics::EARLIEST_YEAR;
+        $latest = (int) Carbon::now()->year;
+
+        $validated = $request->validate([
+            'granularity' => ['nullable', 'in:monthly,yearly'],
+            'analytics_year' => ['nullable', 'integer', "min:{$earliest}", "max:{$latest}"],
+        ]);
+
+        $granularity = ($validated['granularity'] ?? 'monthly') === 'yearly' ? 'yearly' : 'monthly';
+
+        if ($granularity === 'yearly') {
+            // Six years: enough for a business to see its own shape, few enough
+            // that every bucket still has a readable label under it.
+            $first = max($earliest, $latest - 5);
+
+            return [
+                $granularity,
+                Carbon::create($first, 1, 1)->startOfDay(),
+                Carbon::create($latest, 12, 31)->endOfDay(),
+            ];
+        }
+
+        $year = (int) ($validated['analytics_year'] ?? $latest);
+
+        return [
+            $granularity,
+            Carbon::create($year, 1, 1)->startOfDay(),
+            Carbon::create($year, 12, 31)->endOfDay(),
+        ];
+    }
+
+    /**
+     * The years the filter offers, newest first.
+     *
+     * @return list<int>
+     */
+    private function yearOptions(): array
+    {
+        $latest = (int) Carbon::now()->year;
+
+        return range($latest, FinancialAnalytics::EARLIEST_YEAR);
     }
 
     /**
