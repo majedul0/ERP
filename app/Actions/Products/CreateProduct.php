@@ -2,8 +2,11 @@
 
 namespace App\Actions\Products;
 
+use App\Enums\StockMovementReason;
 use App\Models\Product;
+use App\Models\StockMovement;
 use App\Models\Team;
+use App\Models\User;
 use App\Support\Money;
 use App\Support\TenantFileStore;
 use Illuminate\Http\UploadedFile;
@@ -20,12 +23,12 @@ class CreateProduct
      *
      * @param  array<string, mixed>  $data
      */
-    public function handle(Team $team, array $data, ?UploadedFile $photo = null): Product
+    public function handle(Team $team, array $data, ?UploadedFile $photo = null, ?User $actor = null): Product
     {
         $photoPath = null;
 
         try {
-            return DB::transaction(function () use ($team, $data, $photo, &$photoPath): Product {
+            return DB::transaction(function () use ($team, $data, $photo, $actor, &$photoPath): Product {
                 $product = Product::create([
                     'team_id' => $team->id,
                     'name' => $data['name'],
@@ -36,6 +39,24 @@ class CreateProduct
                     'mrp' => Money::fromInput($data['mrp']),
                     'stock_quantity' => (int) ($data['stock_quantity'] ?? 0),
                 ]);
+
+                /*
+                 * Stock typed on the registration form is where this product's
+                 * history begins. Recording it means the stock report can
+                 * explain the figure on the shelf instead of showing goods that
+                 * appeared from nowhere; see App\Support\ProductStockReport.
+                 */
+                if ($product->stock_quantity !== 0) {
+                    StockMovement::create([
+                        'team_id' => $team->id,
+                        'product_id' => $product->id,
+                        'created_by' => $actor?->id,
+                        'occurred_on' => now()->toDateString(),
+                        'quantity' => $product->stock_quantity,
+                        'reason' => StockMovementReason::Opening,
+                        'remarks' => __('Opening stock'),
+                    ]);
+                }
 
                 // Written after the insert so the unique SKU has been accepted
                 // before it is used to name the file:
