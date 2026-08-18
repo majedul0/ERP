@@ -2,7 +2,9 @@
 import { Button } from '@/components/ui/button';
 import { formatAmount, formatMoney } from '@/lib/format';
 import { useCompanyBrand } from '@/modules/company';
+import { useCan } from '@/modules/company';
 import type { Product } from '@/modules/products';
+import { StockMovementModal } from '@/modules/products';
 import { create, edit } from '@/routes/products';
 
 const headCell =
@@ -11,7 +13,9 @@ const bodyCell = 'px-4 py-3 whitespace-nowrap text-coffee-900';
 
 export default function Products({ products }: { products: Product[] }) {
     const brand = useCompanyBrand();
+    const can = useCan();
     const { currentTeam } = usePage().props;
+    const manages = can('product:manage');
 
     return (
         <>
@@ -48,6 +52,9 @@ export default function Products({ products }: { products: Product[] }) {
                                     Stock
                                 </th>
                                 <th className={headCell}>
+                                    <span className="sr-only">Stock</span>
+                                </th>
+                                <th className={headCell}>
                                     <span className="sr-only">Update</span>
                                 </th>
                             </tr>
@@ -56,7 +63,7 @@ export default function Products({ products }: { products: Product[] }) {
                             {products.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={9}
+                                        colSpan={10}
                                         className="px-4 py-10 text-center text-coffee-800/60"
                                     >
                                         No products registered yet.
@@ -115,6 +122,41 @@ export default function Products({ products }: { products: Product[] }) {
                                         className={`${bodyCell} text-right font-medium tabular-nums`}
                                     >
                                         {formatAmount(product.stockQuantity)}
+                                    </td>
+                                    <td className={bodyCell}>
+                                        {/* Moving stock is dated and reasoned;
+                                            the stock field on the edit form is
+                                            an absolute recount. Both exist
+                                            because they answer different
+                                            questions — see StockMovementModal. */}
+                                        {manages && (
+                                            <div className="flex gap-2">
+                                                <StockMovementModal
+                                                    product={product}
+                                                    direction="add"
+                                                >
+                                                    <Button
+                                                        size="sm"
+                                                        className="bg-coffee-600 hover:bg-coffee-700"
+                                                    >
+                                                        + Add Stock
+                                                    </Button>
+                                                </StockMovementModal>
+
+                                                <StockMovementModal
+                                                    product={product}
+                                                    direction="reduce"
+                                                >
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="border-coffee-200 text-coffee-800"
+                                                    >
+                                                        − Reduce Stock
+                                                    </Button>
+                                                </StockMovementModal>
+                                            </div>
+                                        )}
                                     </td>
                                     <td className={bodyCell}>
                                         <Link

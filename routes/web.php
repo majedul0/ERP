@@ -13,6 +13,8 @@ use App\Http\Controllers\Platform\PlanController;
 use App\Http\Controllers\Platform\PlatformController;
 use App\Http\Controllers\Platform\SubscriptionController;
 use App\Http\Controllers\Products\ProductController;
+use App\Http\Controllers\Products\StockMovementController;
+use App\Http\Controllers\Products\StockReportController;
 use App\Http\Controllers\RawMaterials\MaterialPurchaseController;
 use App\Http\Controllers\RawMaterials\RawMaterialController;
 use App\Http\Controllers\RawMaterials\StockLevelController;
@@ -142,11 +144,30 @@ Route::prefix('{current_team}')
             ->middleware(EnsureTeamPermission::class.':product:view,product:manage')
             ->name('products.index');
 
+        /*
+         * The stock report lives with the products it counts, not with the
+         * financial report, because it is the warehouse's sheet rather than the
+         * accountant's. It still asks for `report:view`: it prices what was
+         * sold, and that is a reporting figure whoever is reading it.
+         *
+         * Declared before `products/{product}/...` so `stock-report` is never
+         * read as a product id.
+         */
+        Route::middleware(EnsureTeamPermission::class.':report:view')->group(function () {
+            Route::get('products/stock-report', [StockReportController::class, 'index'])->name('stock-reports.index');
+            Route::get('products/stock-report/excel', [StockReportController::class, 'excel'])
+                ->middleware('throttle:30,1')
+                ->name('stock-reports.excel');
+        });
+
         Route::middleware(EnsureTeamPermission::class.':product:manage')->group(function () {
             Route::get('products/create', [ProductController::class, 'create'])->name('products.create');
             Route::post('products', [ProductController::class, 'store'])->name('products.store');
             Route::get('products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
             Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
+            // Adding production or writing goods off is repricing the shelf
+            // rather than the price list, but it is the same act of authority.
+            Route::post('products/{product}/stock', [StockMovementController::class, 'store'])->name('stock-movements.store');
         });
 
         // Declared before the `{material}` routes so `raw-materials/purchases`
@@ -258,6 +279,7 @@ Route::prefix('{current_team}')
             Route::get('finance/reports/excel', [ReportController::class, 'excel'])
                 ->middleware('throttle:30,1')
                 ->name('reports.excel');
+
         });
 
         // Banks are the list a payment or expense picks from, so anyone who can

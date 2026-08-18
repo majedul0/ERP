@@ -30,6 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('settings/company', [CompanyController::class, 'edit'])->name('company.edit');
     Route::patch('settings/company', [CompanyController::class, 'update'])->name('company.update');
+    Route::patch('settings/company/theme', [CompanyController::class, 'updateTheme'])->name('company.theme.update');
     Route::post('settings/company/logo', [CompanyController::class, 'updateLogo'])
         ->middleware('throttle:20,1')
         ->name('company.logo.update');

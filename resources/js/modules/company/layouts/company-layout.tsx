@@ -1,6 +1,7 @@
 ﻿import CompanyHeader from '../components/company-header';
 import SubscriptionBanner from '../components/subscription-banner';
 import { useCompanyBrand } from '../hooks/use-company-brand';
+import { useCompanyTheme } from '../hooks/use-company-theme';
 
 /**
  * Shell for the company-facing (tenant) surface: top navigation instead of the
@@ -12,6 +13,10 @@ export default function CompanyLayout({
     children: React.ReactNode;
 }) {
     const brand = useCompanyBrand();
+
+    // Repaints when the colour changes or the user switches company, neither of
+    // which reloads the page. The server has already painted the first one.
+    useCompanyTheme();
 
     return (
         <div className="flex min-h-screen flex-col bg-coffee-50/40">

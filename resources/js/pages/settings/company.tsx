@@ -1,7 +1,11 @@
 import { Head } from '@inertiajs/react';
 import { Separator } from '@/components/ui/separator';
 import type { CompanySettings } from '@/modules/settings/company';
-import { CompanyLogoForm, CompanyNameForm } from '@/modules/settings/company';
+import {
+    CompanyLogoForm,
+    CompanyNameForm,
+    CompanyThemeForm,
+} from '@/modules/settings/company';
 import { edit } from '@/routes/company';
 
 type Props = {
@@ -35,6 +39,15 @@ export default function Company({
                 logoUrl={company.logoUrl}
                 canUpdate={canUpdate}
                 maxLogoKilobytes={maxLogoKilobytes}
+            />
+
+            <Separator />
+
+            <CompanyThemeForm
+                themeRgb={company.themeRgb}
+                usesDefaultTheme={company.usesDefaultTheme}
+                appliedThemeColor={company.appliedThemeColor}
+                canUpdate={canUpdate}
             />
 
             {!canUpdate && (

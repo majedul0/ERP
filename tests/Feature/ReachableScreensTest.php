@@ -92,6 +92,7 @@ class ReachableScreensTest extends TestCase
             'vendor payments' => ['vendor-payments.index'],
             'expenses' => ['expenses.index'],
             'reports' => ['reports.index'],
+            'stock report' => ['stock-reports.index'],
             'raw materials' => ['materials.index'],
             'material purchases' => ['purchases.index'],
             'stock levels' => ['stock-levels.index'],

@@ -5,4 +5,5 @@
  */
 export { default as CompanyLogoForm } from './components/company-logo-form';
 export { default as CompanyNameForm } from './components/company-name-form';
-export type { CompanySettings } from './types';
+export { default as CompanyThemeForm } from './components/company-theme-form';
+export type { CompanySettings, ThemeRgb } from './types';

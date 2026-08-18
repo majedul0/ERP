@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatMoney } from '@/lib/format';
 import { useCompanyBrand } from '@/modules/company';
-import type { FinancialReport } from '@/modules/finance';
+import type { FinancialAnalytics, FinancialReport } from '@/modules/finance';
+import { AnalyticsBand, mergeQuery } from '@/modules/finance';
 import { excel, index } from '@/routes/reports';
 
 function Card({
@@ -63,7 +64,15 @@ function Row({
     );
 }
 
-export default function Reports({ report }: { report: FinancialReport }) {
+export default function Reports({
+    report,
+    analytics,
+    yearOptions,
+}: {
+    report: FinancialReport;
+    analytics: FinancialAnalytics;
+    yearOptions: number[];
+}) {
     const brand = useCompanyBrand();
     const { currentTeam } = usePage().props;
     const teamSlug = currentTeam?.slug ?? '';
@@ -73,16 +82,37 @@ export default function Reports({ report }: { report: FinancialReport }) {
     const [to, setTo] = useState(report.period.to);
 
     const apply = () =>
-        router.get(index(teamSlug).url, { from, to }, { preserveState: true });
+        router.get(index(teamSlug).url, mergeQuery({ from, to }), {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['report'],
+        });
 
     return (
         <>
             <Head title="Financial Report" />
 
+            <h1 className="mb-5 text-xl font-bold text-coffee-900">
+                Financial Report
+            </h1>
+
+            <AnalyticsBand
+                analytics={analytics}
+                yearOptions={yearOptions}
+                standing={report.standing}
+                currencySymbol={brand.currencySymbol}
+                reportUrl={index(teamSlug).url}
+            />
+
             <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-                <h1 className="text-xl font-bold text-coffee-900">
-                    Financial Report
-                </h1>
+                <div>
+                    <h2 className="text-lg font-bold text-coffee-900">
+                        Detail
+                    </h2>
+                    <p className="text-sm text-coffee-800/60">
+                        {report.period.from} to {report.period.to}
+                    </p>
+                </div>
 
                 <div className="flex flex-wrap items-end gap-2">
                     <div className="grid gap-1">
