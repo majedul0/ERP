@@ -121,9 +121,15 @@ final class FinancialReport
     }
 
     /**
+     * Spending grouped by the category it was booked under, biggest first.
+     *
+     * Public because the analytics band draws the same breakdown as a chart;
+     * one implementation means the chart and the list underneath it cannot
+     * disagree about what was spent on rent.
+     *
      * @return array<int, array{category: string, label: string, amount: int}>
      */
-    private static function expensesByCategory(Team $team, Carbon $from, Carbon $to): array
+    public static function expensesByCategory(Team $team, Carbon $from, Carbon $to): array
     {
         return $team->expenses()
             ->whereBetween('spent_on', [$from->toDateString(), $to->toDateString()])
