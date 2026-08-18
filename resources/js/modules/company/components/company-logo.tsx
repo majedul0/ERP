@@ -3,6 +3,10 @@ import type { CompanyBrand } from '../types';
 
 /**
  * The wave mark, used when a company has not uploaded a logo yet.
+ *
+ * Drawn from the palette rather than from fixed hexes, so a company that has
+ * set its own colour gets a placeholder in that colour instead of the teal this
+ * mark wore when the app still had an ocean palette — it was the last of it.
  */
 function WaveMark({ className }: { className?: string }) {
     return (
@@ -14,9 +18,18 @@ function WaveMark({ className }: { className?: string }) {
         >
             <defs>
                 <linearGradient id="mark-wave" x1="0" y1="1" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#2b4152" />
-                    <stop offset="55%" stopColor="#3f8fae" />
-                    <stop offset="100%" stopColor="#54c1c4" />
+                    <stop
+                        offset="0%"
+                        style={{ stopColor: 'var(--color-coffee-800)' }}
+                    />
+                    <stop
+                        offset="55%"
+                        style={{ stopColor: 'var(--color-coffee-500)' }}
+                    />
+                    <stop
+                        offset="100%"
+                        style={{ stopColor: 'var(--color-coffee-300)' }}
+                    />
                 </linearGradient>
             </defs>
             <path
@@ -37,7 +50,7 @@ function WaveMark({ className }: { className?: string }) {
 
 type Props = {
     brand: CompanyBrand;
-    /** `light` renders the wordmark for placement on an ocean background. */
+    /** `light` renders the wordmark for placement on a dark banner. */
     tone?: 'dark' | 'light';
     className?: string;
 };
