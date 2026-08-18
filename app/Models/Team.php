@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Concerns\GeneratesUniqueTeamSlugs;
 use App\Enums\SuspensionMode;
 use App\Enums\TeamRole;
+use App\Support\BrandColor;
 use App\Support\TenantFileStore;
 use Database\Factories\TeamFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -22,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string $slug
  * @property string|null $logo_path
+ * @property string|null $theme_color
  * @property string|null $address
  * @property string|null $phone
  * @property bool $is_personal
@@ -38,6 +40,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, User> $members
  * @property-read Collection<int, Distributor> $distributors
  * @property-read Collection<int, Product> $products
+ * @property-read Collection<int, StockMovement> $stockMovements
  * @property-read Collection<int, Invoice> $invoices
  * @property-read Collection<int, SalesReturn> $salesReturns
  * @property-read Collection<int, Bank> $banks
@@ -47,6 +50,7 @@ use Illuminate\Support\Carbon;
     'name',
     'slug',
     'logo_path',
+    'theme_color',
     'address',
     'phone',
     'is_personal',
@@ -87,6 +91,21 @@ class Team extends Model
     public function logoUrl(): ?string
     {
         return TenantFileStore::url('logos', $this->logo_path);
+    }
+
+    /**
+     * The colour this company's screens are painted in, as `#rrggbb`, or null
+     * when it uses the house palette.
+     *
+     * Darkened only as far as white text on it demands — every dark surface in
+     * the app carries some. See App\Support\BrandColor, which is the one place
+     * that decides.
+     */
+    public function themeColor(): ?string
+    {
+        return $this->theme_color === null
+            ? null
+            : BrandColor::applied($this->theme_color);
     }
 
     /**
@@ -152,6 +171,14 @@ class Team extends Model
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    /**
+     * @return HasMany<StockMovement, $this>
+     */
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class);
     }
 
     /**
