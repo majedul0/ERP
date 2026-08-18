@@ -94,3 +94,21 @@ const clockDateFormatter = new Intl.DateTimeFormat('en-US', {
 export function formatClockDate(date: Date): string {
     return clockDateFormatter.format(date);
 }
+
+const compactFormatter = new Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+});
+
+/**
+ * `1250000` -> `1.3M`
+ *
+ * For axis ticks and other places where the exact figure is a distraction and
+ * is available in full somewhere else — a tooltip, a table, the report below.
+ * Never for a figure somebody has to reconcile against.
+ */
+export function formatCompactAmount(amount: number): string {
+    return Math.abs(amount) < 1000
+        ? formatAmount(amount)
+        : compactFormatter.format(amount);
+}
