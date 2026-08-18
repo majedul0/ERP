@@ -248,6 +248,31 @@ concurrent processes against 10 units of stock produced exactly 10 invoices, 10 
 numbers, and a stock of 0; 30 concurrent invoices produced INV1–INV30 with no duplicates and
 an exactly correct distributor balance.
 
+### Stock over time
+
+`products.stock_quantity` says what is on the shelf now and nothing about how it got
+there, so `stock_movements` records every change that is **not** a sale or a return:
+production, recounts, goods written off. Sales and returns are dated records already —
+copying them in would be a second version an edit could leave disagreeing with the first.
+
+`App\Support\ProductStockReport` (screen at `products/stock-report`, in the Products menu) reports a month per
+product and **stores no snapshot**: closing stock is today's figure walked *backwards*
+through everything dated after the month, and opening is that walked back through the
+month itself. A production entered against the wrong day therefore corrects both months
+the next time the report is asked for, exactly as `FinancialReport` does for money.
+
+The row adds up left to right — `Closing = Opening + Productions − Sales − Damaged` —
+which holds because **Sales is net of what came back**. Fresh returns went back on the
+shelf and are shown in their own column so the netting is visible; damaged returns and
+warehouse write-offs share the Damaged column. `Balance` is the check column: stock on the
+shelf less everything the books say ever moved, and it is zero unless `stock_quantity` was
+written without a movement row.
+
+`RecordStockMovement` writes the movement and the new stock together under one
+`lockForUpdate()`, and `CreateProduct`/`UpdateProduct` record the opening figure and any
+recount the same way. Any future code that moves stock must do likewise or the report
+silently walks past it.
+
 ### Buying and spending
 
 `App\Support\VendorLedger` is the mirror of `DistributorLedger` and deliberately the same
@@ -260,6 +285,22 @@ makes a statement reconcilable, which the sales side learned the hard way.
 money already gone. Keeping them apart is what lets the report show what is still payable
 separately from what has been spent. Categories are a fixed enum (`ExpenseCategory`) because
 the report groups by them.
+
+`App\Support\FinancialAnalytics` is the trend band on top of that screen: the same figures,
+bucketed by month or by year, so a line can be drawn through them. It reads the same tables
+under the same rules, and `FinancialAnalyticsTest` asserts a bucket equals what
+`FinancialReport` states for that month rather than trusting that it does. It carries its own
+period control, separate from the report's `from`/`to` — a chart of one month is one dot.
+There is **no profit line here either**, for the reason below; `net` is revenue less what was
+spent and billed, an operating result, labelled as one on screen.
+
+Charts are hand-drawn SVG (`modules/finance/components/charts/`) — three lines and a ring do
+not justify a charting dependency. Their palette is **fixed and deliberately not the company
+theme colour**: series identity is carried by hue, and a tenant free to pick pale yellow cannot
+be allowed to set it. The eight slots are a validated categorical order (CVD-checked against
+this app's white surface, assigned by position, never cycled); a ninth series folds into
+Other instead of inventing a hue. Every chart ships a legend and a table, which is what
+answers the palette's sub-3:1 contrast warning rather than dismissing it.
 
 `App\Support\FinancialReport` recomputes on every request from the same tables the screens
 read, so correcting an invoice yesterday corrects last month's report. It deliberately shows
@@ -347,6 +388,20 @@ Fortify response contract needs the same treatment.
   in `resources/css/app.css`. Every surface reaches for those tokens rather than a raw hex, so a
   rebrand is those values and nothing else. Gold is for emphasis only — none of its steps pass
   contrast as text on white.
+- **A company can repaint the app** in its own colour (`teams.theme_color`, entered as RGB on
+  the company settings screen). Null means the house palette, so a company that never opens the
+  setting looks exactly as before. Only the base colour travels: `:root[data-company-theme]`
+  derives all ten `coffee-*` steps from `--brand-base` with `color-mix()`, set on `<html>` by
+  `app.blade.php` (no flash on first paint) and kept in step by `useCompanyTheme` (company
+  switching, saving a colour). Gold is deliberately not re-tinted — it is the accent that has to
+  stand out *against* the brand colour. `App\Support\BrandColor` is the only place that encodes
+  the colour and the only place that darkens it: every dark surface carries white text, so a
+  chosen colour too pale for 4.5:1 is darkened when applied while what they picked is what is
+  stored. Never reimplement that arithmetic in TypeScript. **SVG art must reach for the same
+  variables** — `StarBackdrop` (the dashboard banner) and the placeholder `WaveMark` do, via
+  `style={{ stopColor: 'var(--color-coffee-800)' }}` for gradient stops (presentation attributes
+  do not resolve `var()`) and `fill-*` utilities for flat fills. A hardcoded hex anywhere is a
+  patch of the old palette that will not follow a company's colour.
 - Dates: `sold_at` is a **calendar date with no time of day**, so render it with `formatSaleDate`.
   `formatSaleDateTime` is only ever given a real timestamp such as `created_at`. `APP_TIMEZONE`
   must be set to the business's timezone — `today()` decides which sales reach the dashboard.
