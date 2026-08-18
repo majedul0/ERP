@@ -9,6 +9,12 @@ import { cn } from '@/lib/utils';
  * opacity and cluster away from the centre where the text sits.
  *
  * A company that uploads its own banner image can layer one over this.
+ *
+ * Every colour here is a palette variable rather than a hex, so the panel
+ * follows the company's own colour along with the rest of the app. SVG
+ * presentation attributes do not resolve `var()`, which is why the gradient
+ * stops carry a style object instead of a `stopColor` attribute; the flat fills
+ * use Tailwind's `fill-*` utilities, which compile to the same variables.
  */
 export default function StarBackdrop({ className }: { className?: string }) {
     return (
@@ -24,13 +30,32 @@ export default function StarBackdrop({ className }: { className?: string }) {
         >
             <defs>
                 <linearGradient id="star-sky" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#5a3f2d" />
-                    <stop offset="45%" stopColor="#4a3427" />
-                    <stop offset="100%" stopColor="#33241b" />
+                    <stop
+                        offset="0%"
+                        style={{ stopColor: 'var(--color-coffee-700)' }}
+                    />
+                    <stop
+                        offset="45%"
+                        style={{ stopColor: 'var(--color-coffee-800)' }}
+                    />
+                    <stop
+                        offset="100%"
+                        style={{ stopColor: 'var(--color-coffee-900)' }}
+                    />
                 </linearGradient>
                 <radialGradient id="star-glow" cx="0.78" cy="0.2" r="0.62">
-                    <stop offset="0%" stopColor="#e8b93c" stopOpacity="0.22" />
-                    <stop offset="100%" stopColor="#e8b93c" stopOpacity="0" />
+                    {/* Gold, and gold whatever the company picks: the glow is
+                        the accent that has to lift off the panel behind it. */}
+                    <stop
+                        offset="0%"
+                        stopOpacity="0.22"
+                        style={{ stopColor: 'var(--color-gold-400)' }}
+                    />
+                    <stop
+                        offset="100%"
+                        stopOpacity="0"
+                        style={{ stopColor: 'var(--color-gold-400)' }}
+                    />
                 </radialGradient>
                 {/* One star, reused. Four cusps so it reads as a star rather
                     than a dot at small sizes. */}
@@ -43,7 +68,7 @@ export default function StarBackdrop({ className }: { className?: string }) {
             <rect width="1200" height="400" fill="url(#star-sky)" />
             <rect width="1200" height="400" fill="url(#star-glow)" />
 
-            <g fill="#f6e0a3">
+            <g className="fill-gold-200">
                 <use
                     href="#star-shape"
                     transform="translate(120 70) scale(1.5)"
@@ -108,7 +133,7 @@ export default function StarBackdrop({ className }: { className?: string }) {
 
             {/* A few plain specks, so the field does not read as a repeating
                 pattern of identical shapes. */}
-            <g fill="#faf6f2">
+            <g className="fill-coffee-50">
                 <circle cx="440" cy="150" r="2" opacity="0.3" />
                 <circle cx="560" cy="268" r="1.6" opacity="0.22" />
                 <circle cx="760" cy="140" r="2.2" opacity="0.26" />
