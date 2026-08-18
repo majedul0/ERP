@@ -101,6 +101,39 @@
     --color-gold-600: #a87c11;
 }
 
+/*
+ * A company painting the app in its own colour.
+ *
+ * `--brand-base` is set on <html> — by the server in `app.blade.php` so the
+ * first paint is already right, and kept in step by `useCompanyTheme` when
+ * somebody switches company without a page load. The ten steps are derived
+ * from it here rather than sent from the server, so the whole theme travels as
+ * one value and there is no second copy of the scale to drift.
+ *
+ * Mixed in oklab so the tints stay the same hue instead of drifting grey the
+ * way sRGB mixing does. The percentages match the spacing of the default
+ * coffee scale: light enough at 50 for a page background, dark enough at 900
+ * for body text, and 500 dark enough to carry white — which the server
+ * guarantees by darkening the chosen colour if it has to
+ * (App\Support\BrandColor).
+ *
+ * Gold is deliberately untouched. It is the accent that says "this is
+ * highlighted", not part of the company's identity, and re-tinting it to the
+ * brand colour would leave the emphasis invisible against the thing it sits on.
+ */
+:root[data-company-theme] {
+    --color-coffee-50: color-mix(in oklab, var(--brand-base) 6%, white);
+    --color-coffee-100: color-mix(in oklab, var(--brand-base) 14%, white);
+    --color-coffee-200: color-mix(in oklab, var(--brand-base) 30%, white);
+    --color-coffee-300: color-mix(in oklab, var(--brand-base) 52%, white);
+    --color-coffee-400: color-mix(in oklab, var(--brand-base) 76%, white);
+    --color-coffee-500: var(--brand-base);
+    --color-coffee-600: color-mix(in oklab, var(--brand-base) 88%, black);
+    --color-coffee-700: color-mix(in oklab, var(--brand-base) 76%, black);
+    --color-coffee-800: color-mix(in oklab, var(--brand-base) 64%, black);
+    --color-coffee-900: color-mix(in oklab, var(--brand-base) 48%, black);
+}
+
 :root {
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
