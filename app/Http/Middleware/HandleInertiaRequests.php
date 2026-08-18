@@ -74,6 +74,15 @@ class HandleInertiaRequests extends Middleware
                 'address' => $team->address,
                 'phone' => $team->phone,
                 'currencySymbol' => config('company.currency_symbol'),
+
+                /*
+                 * The colour the company's screens are painted in, or null for
+                 * the house palette. Shared rather than fetched per page
+                 * because it has to be applied before anything renders, and
+                 * because switching companies must repaint immediately — see
+                 * `useCompanyTheme`.
+                 */
+                'themeColor' => $team->themeColor(),
             ] : null,
             /*
              * How long this company is paid up for, so they get fair warning
