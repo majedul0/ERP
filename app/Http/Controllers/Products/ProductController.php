@@ -52,6 +52,7 @@ class ProductController extends Controller
             $team,
             $request->safe()->except('photo'),
             $request->file('photo'),
+            $request->user(),
         );
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Product added.')]);
@@ -92,6 +93,7 @@ class ProductController extends Controller
             $product,
             $request->safe()->except('photo'),
             $request->file('photo'),
+            $request->user(),
         );
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Product updated.')]);
