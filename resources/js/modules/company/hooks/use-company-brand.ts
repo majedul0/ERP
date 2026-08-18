@@ -17,6 +17,7 @@ export function useCompanyBrand(): CompanyBrand {
             address: null,
             phone: null,
             currencySymbol: '৳',
+            themeColor: null,
         }
     );
 }
