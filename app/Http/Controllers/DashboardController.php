@@ -74,12 +74,14 @@ class DashboardController extends Controller
             ->sum('amount');
 
         /*
-         * Money out today: what was spent running the company, plus what was
-         * paid to vendors. Both are cash leaving on the day, which is what the
-         * banner's Total is asking about.
+         * Money out today: what was spent running the company, what was paid to
+         * vendors, and what was paid in wages. All three are cash leaving on
+         * the day, which is what the banner's Total is asking about — leaving
+         * wages out made a day the staff were paid look like a good one.
          */
         $spent = (int) $team->expenses()->whereDate('spent_on', today())->sum('amount')
-            + (int) $team->vendorPayments()->whereDate('paid_on', today())->sum('amount');
+            + (int) $team->vendorPayments()->whereDate('paid_on', today())->sum('amount')
+            + (int) $team->salaryPayments()->whereDate('paid_on', today())->sum('amount');
 
         return [
             'total' => $received - $spent,
