@@ -41,6 +41,13 @@ enum TeamRole: string
                 fn (TeamPermission $permission) => $permission !== TeamPermission::DeleteTeam,
             )),
 
+            /*
+             * Deliberately nothing from the People group. A salesperson has no
+             * business reading a colleague's salary, and a supervisor who does
+             * need the attendance grid is granted `attendance:*` specifically —
+             * `team_members.permissions` exists exactly so that one person can
+             * be given one thing without being promoted to admin.
+             */
             self::Member => [
                 TeamPermission::ViewInvoices,
                 TeamPermission::CreateInvoice,
