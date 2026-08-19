@@ -56,6 +56,23 @@ enum TeamPermission: string
     case ManageExpenses = 'expense:manage';
     case ViewReports = 'report:view';
 
+    /*
+     * People.
+     *
+     * Split three ways rather than two, because who works here, who turned up,
+     * and what they are paid are three different questions with three different
+     * audiences. A supervisor marking the attendance grid needs `attendance:*`
+     * and must not see a salary; `payroll:view` is the one that opens the
+     * figures, and every screen and prop that carries money is gated on it
+     * rather than on `employee:view`.
+     */
+    case ViewEmployees = 'employee:view';
+    case ManageEmployees = 'employee:manage';
+    case ViewAttendance = 'attendance:view';
+    case ManageAttendance = 'attendance:manage';
+    case ViewPayroll = 'payroll:view';
+    case ManagePayroll = 'payroll:manage';
+
     public function label(): string
     {
         return match ($this) {
@@ -91,6 +108,13 @@ enum TeamPermission: string
             self::ViewExpenses => 'View expenses',
             self::ManageExpenses => 'Record, edit and delete expenses',
             self::ViewReports => 'View financial reports',
+
+            self::ViewEmployees => 'View employees',
+            self::ManageEmployees => 'Add, edit and remove employees',
+            self::ViewAttendance => 'View attendance',
+            self::ManageAttendance => 'Mark and correct attendance',
+            self::ViewPayroll => 'View salaries and payslips',
+            self::ManagePayroll => 'Run payroll and record salary payments',
         };
     }
 
@@ -119,6 +143,10 @@ enum TeamPermission: string
 
             self::ViewExpenses, self::ManageExpenses => 'Expenses',
             self::ViewReports => 'Reports',
+
+            self::ViewEmployees, self::ManageEmployees => 'Employees',
+            self::ViewAttendance, self::ManageAttendance => 'Attendance',
+            self::ViewPayroll, self::ManagePayroll => 'Payroll',
         };
     }
 
