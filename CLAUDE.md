@@ -227,6 +227,13 @@ Products are editable (`UpdateProduct`). Repricing only affects future invoices:
 copy name, SKU and unit price at the moment of sale, and stock entered on the form is an
 absolute recount, not a delta.
 
+**Date ranges use `whereDate`, not `whereBetween`.** Laravel's `date` cast writes
+`2026-08-31 00:00:00`. Postgres stores that in a real DATE column and truncates it, so a plain
+string range works in production — but sqlite keeps the text and `'2026-08-31 00:00:00'` sorts
+*after* `'2026-08-31'`, silently dropping everything recorded on a period's closing day. The test
+suite runs on sqlite, so the pattern made a whole class of boundary bug invisible to it.
+`FinancialReport` and `FinancialAnalytics` use `whereDate` throughout for that reason.
+
 **Stock writes are explicit `update()` calls, never `increment()`/`decrement()`.** Those two
 sync the model's original attributes, so a `saved` listener cannot tell that stock moved — and
 that listener is what keeps other people's open invoice forms current. The rows are locked
@@ -307,6 +314,65 @@ read, so correcting an invoice yesterday corrects last month's report. It delibe
 **no profit line**: an invoice records what a product sold for, not what it cost, so profit
 would be a guess dressed up as a figure. Balances (`standing`) are as of today and are not
 filtered by the period — "what is owed to us" has no date range.
+
+### People (HR and payroll)
+
+An **employee is not a `User`.** A login needs a unique email and a password; a packer has
+neither. `employees` is a record about a person, shaped like `Vendor`, and `employees.balance`
+is what the company still owes them — derived by `ReplayEmployeeBalance`, never typed, negative
+meaning they have drawn more than they have earned.
+
+Three permissions pairs, not one, because who works here, who turned up and what they are paid
+have different audiences: `employee:*`, `attendance:*`, `payroll:*`. **Salary figures are gated
+on `payroll:view` and the controllers omit those keys entirely** rather than sending them for
+the page to hide. Admins inherit all three (`TeamRole::Admin` is every case but `DeleteTeam`);
+`Member` gets none.
+
+Three invariants hold this together:
+
+- **An advance is salary paid early, not a loan.** One credit on the account, dated the day the
+  cash left. Its installment decides how much of a later month's *net* is withheld, and
+  withholding moves no money — so it never touches the ledger twice. That is why
+  `EmployeeLedger` debits `PayrollLine::earned()` (gross + overtime + additions) and never
+  `net_payable`, and why `advance_repayments` is bookkeeping rather than a ledger line. The
+  test that proves it: earn 10,000, take a 2,000 advance, be paid 8,000, balance zero.
+- **A draft payroll run holds no truth; an approved one is a document.** A draft recomputes in
+  full from attendance, the rate in force and the outstanding advances every time it is opened.
+  Approving freezes the figures, because that is when a payslip is printed and handed over. An
+  approved run whose data later moved is **badged as drifted** on screen (`PayrollRunController::show`
+  recomputes in memory and diffs) rather than silently rewritten. `reopen` is refused once any
+  line has been paid, and gives the advance outstanding back by cascading the repayment rows.
+- **Wages are money out exactly once, from `salary_payments`.** Payroll lines are an
+  entitlement, not cash. `FinancialReport::money()`, `FinancialAnalytics` and the dashboard read
+  that one table, exactly as they read `vendor_payments`. `ExpenseCategory::Salary` is therefore
+  **closed, not removed**: `selectable()` keeps it off the create form, `SaveExpenseRequest`
+  refuses it on create but allows it on an expense that already is one, and legacy rows keep
+  reporting under their label.
+
+`App\Support\PayrollCalculator` is the only place a month's pay is worked out — the draft
+recompute, the approve action and the drift check all call it. It counts in **half-days** so a
+half-day never needs a second rounding, and divides once. The two bases differ in exactly one
+place, the divisor: a monthly salary is spread over the month's working days (`unit_total`), a
+daily wage is priced per day (`2`). So a monthly employee marked present on a Friday is not paid
+twice for a day their salary already contains, while a daily-wage one is. Unmarked days follow
+`SalaryType::unmarkedDayCountsAsWorked()`: salaried staff are marked by exception, daily wages
+are not. Perfect attendance is exact (`intdiv(rate × n, n) === rate`); the absence figure is
+reported as the complement so the payslip adds up even where a partial month truncated.
+
+`App\Support\WorkingCalendar` is the **only** place "is this a working day" is answered, derived
+from `payroll_settings.weekend_days` (Fri/Sat by default) and `holidays` — never stored, so
+changing the weekend or adding a holiday re-derives every past month, as `ProductStockReport`
+does for stock.
+
+The attendance grid submits **only the cells that changed**, which is what lets two supervisors
+work the same month at once. `SaveAttendance` upserts on `(employee_id, date)` and deletes
+cleared cells **grouped by employee** — `whereIn(employee) AND whereIn(date)` is a cross product
+and wiped cells nobody touched. Clearing a cell deletes the row, because "no mark" is a state
+and `attendance_records` deliberately does not soft-delete.
+
+Rates are effective-dated (`employee_salary_rates`), never a column on the employee: a raise in
+June must not rewrite January's payslip. Payroll reads the latest row dated on or before the
+month's last day.
 
 ### The platform panel (`/majedul`)
 
