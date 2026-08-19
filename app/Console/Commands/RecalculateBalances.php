@@ -2,12 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Actions\Employees\ReplayEmployeeBalance;
 use App\Actions\Invoices\RecalculateDistributorBalance;
 use App\Models\Distributor;
+use App\Models\Employee;
 use Illuminate\Console\Command;
 
 /**
- * Replay every distributor's account.
+ * Replay every running account — distributors, and the people who work here.
  *
  * Needed after a change to how the ledger is ordered or valued: the figures
  * stored on `invoices.previous_dues`, `invoices.total_amount` and
@@ -24,9 +26,22 @@ class RecalculateBalances extends Command
     protected $signature = 'app:recalculate-balances
                             {--team= : Limit to one team id}';
 
-    protected $description = "Replay every distributor's running account";
+    protected $description = 'Replay every running account';
 
-    public function handle(RecalculateDistributorBalance $recalculate): int
+    public function handle(
+        RecalculateDistributorBalance $recalculate,
+        ReplayEmployeeBalance $replayEmployee,
+    ): int {
+        $this->replayDistributors($recalculate);
+        $this->replayEmployees($replayEmployee);
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Distributors: invoices, payments and returns.
+     */
+    private function replayDistributors(RecalculateDistributorBalance $recalculate): void
     {
         $query = Distributor::query()
             ->when($this->option('team'), fn ($q, $team) => $q->where('team_id', $team))
@@ -37,7 +52,7 @@ class RecalculateBalances extends Command
         if ($total === 0) {
             $this->components->info('No distributors to replay.');
 
-            return self::SUCCESS;
+            return;
         }
 
         $changed = 0;
@@ -62,8 +77,50 @@ class RecalculateBalances extends Command
         $bar->finish();
         $this->newLine(2);
 
-        $this->components->info("Replayed {$total} account(s); {$changed} balance(s) changed.");
+        $this->components->info("Replayed {$total} distributor account(s); {$changed} balance(s) changed.");
+    }
 
-        return self::SUCCESS;
+    /**
+     * Employees: approved payroll lines, bonuses and payments.
+     *
+     * Same reason as the distributors above — a change to how the employee
+     * ledger values anything leaves every stored balance written by the old
+     * walk, and nothing rewrites one until that person is next paid.
+     */
+    private function replayEmployees(ReplayEmployeeBalance $replayEmployee): void
+    {
+        $query = Employee::query()
+            ->when($this->option('team'), fn ($q, $team) => $q->where('team_id', $team))
+            ->orderBy('id');
+
+        $total = $query->count();
+
+        if ($total === 0) {
+            $this->components->info('No employees to replay.');
+
+            return;
+        }
+
+        $changed = 0;
+        $bar = $this->output->createProgressBar($total);
+
+        $query->chunkById(100, function ($employees) use ($replayEmployee, $bar, &$changed): void {
+            foreach ($employees as $employee) {
+                $before = $employee->balance;
+
+                $replayEmployee->handle($employee);
+
+                if ($employee->refresh()->balance !== $before) {
+                    $changed++;
+                }
+
+                $bar->advance();
+            }
+        });
+
+        $bar->finish();
+        $this->newLine(2);
+
+        $this->components->info("Replayed {$total} employee account(s); {$changed} balance(s) changed.");
     }
 }
