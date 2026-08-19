@@ -7,9 +7,11 @@ use App\Models\Distributor;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Product;
+use App\Models\SalesReturn;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Models\VendorBill;
 use App\Support\FinancialAnalytics;
 use App\Support\FinancialReport;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -267,6 +269,118 @@ class FinancialAnalyticsTest extends TestCase
                 4_400,
                 (int) collect($breakdown)->sum('amount'),
             );
+        });
+    }
+
+    /**
+     * Deleting an expense has to take it off the chart.
+     *
+     * It did not: the buckets were read with `DB::table()`, which does not
+     * apply the soft-delete scope, so a deleted expense kept being counted in
+     * the Expenses tile and the trend line while the breakdown beside them —
+     * read through Eloquent — had already dropped it. The two figures sat on
+     * the same screen disagreeing.
+     */
+    public function test_a_deleted_expense_leaves_the_chart()
+    {
+        $this->spend(1_500, '2026-02-10');
+        $this->spend(500, '2026-02-11');
+
+        $this->report(['analytics_year' => 2026])->assertInertia(fn (Assert $page) => $page
+            ->where('analytics.buckets.1.expenses', 2_000),
+        );
+
+        $expense = Expense::where('amount', 1_500)->firstOrFail();
+
+        $this->actingAs($this->user)->delete(route('expenses.destroy', [
+            'current_team' => $this->team->slug,
+            'expense' => $expense->id,
+        ]))->assertSessionHasNoErrors();
+
+        $this->report(['analytics_year' => 2026])->assertInertia(fn (Assert $page) => $page
+            ->where('analytics.buckets.1.expenses', 500)
+            ->where('analytics.totals.expenses', 500),
+        );
+    }
+
+    public function test_a_deleted_vendor_bill_leaves_the_chart()
+    {
+        $vendor = Vendor::factory()->create(['team_id' => $this->team->id]);
+
+        $this->actingAs($this->user)->post(
+            route('bills.store', ['current_team' => $this->team->slug]),
+            [
+                'vendor_id' => $vendor->id,
+                'billed_on' => '2026-02-10',
+                'amount' => 5_000,
+                'reference' => 'BILL-1',
+            ],
+        )->assertSessionHasNoErrors();
+
+        $bill = VendorBill::firstOrFail();
+
+        $this->actingAs($this->user)->delete(route('bills.destroy', [
+            'current_team' => $this->team->slug,
+            'bill' => $bill->id,
+        ]))->assertSessionHasNoErrors();
+
+        $this->report(['analytics_year' => 2026])->assertInertia(fn (Assert $page) => $page
+            ->where('analytics.totals.expenses', 0),
+        );
+    }
+
+    public function test_a_deleted_return_leaves_the_chart()
+    {
+        $this->sell(10, '2026-02-14');
+
+        $this->actingAs($this->user)->post(
+            route('returns.store', ['current_team' => $this->team->slug]),
+            [
+                'distributor_id' => $this->distributor->id,
+                'returned_on' => '2026-02-20',
+                'restock' => true,
+                'items' => [
+                    ['product_id' => $this->product->id, 'quantity' => 4, 'unit_price' => 100],
+                ],
+            ],
+        )->assertSessionHasNoErrors();
+
+        $return = SalesReturn::firstOrFail();
+
+        $this->actingAs($this->user)->delete(route('returns.destroy', [
+            'current_team' => $this->team->slug,
+            'return' => $return->id,
+        ]))->assertSessionHasNoErrors();
+
+        $this->report(['analytics_year' => 2026])->assertInertia(fn (Assert $page) => $page
+            ->where('analytics.totals.revenue', 1_000),
+        );
+    }
+
+    /**
+     * The chart and the breakdown printed beside it read the same tables, so
+     * they must never state different spending — whatever has been deleted.
+     */
+    public function test_the_chart_and_the_breakdown_agree_after_a_deletion()
+    {
+        $this->spend(1_500, '2026-02-10', 'rent');
+        $this->spend(500, '2026-02-11', 'transport');
+
+        $expense = Expense::where('amount', 1_500)->firstOrFail();
+
+        $this->actingAs($this->user)->delete(route('expenses.destroy', [
+            'current_team' => $this->team->slug,
+            'expense' => $expense->id,
+        ]))->assertSessionHasNoErrors();
+
+        $this->report(['analytics_year' => 2026])->assertInertia(function (Assert $page) {
+            $analytics = $page->toArray()['props']['analytics'];
+
+            $breakdown = (int) collect($analytics['expenseBreakdown'])->sum('amount');
+
+            // No vendor bills here, so the two are the same figure.
+            $this->assertSame($analytics['totals']['expenses'], $breakdown);
+            $this->assertSame(500, $breakdown);
         });
     }
 
