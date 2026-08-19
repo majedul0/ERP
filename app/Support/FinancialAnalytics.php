@@ -164,19 +164,24 @@ final class FinancialAnalytics
         string $bucket,
         string $sum,
     ): array {
-        $query = DB::table($table)
+        $rows = DB::table($table)
             ->where('team_id', $team->id)
+            /*
+             * Every table this reads soft-deletes, and `DB::table()` does not
+             * apply the model's global scope — so a deleted expense went on
+             * being counted here while the breakdown beside it, which goes
+             * through Eloquent, dropped it. The two figures disagreed on
+             * screen. Filtered unconditionally rather than per table, because
+             * the next caller will not remember either.
+             */
+            ->whereNull('deleted_at')
             ->whereBetween($dateColumn, [$from->toDateString(), $to->toDateString()])
             ->groupByRaw($bucket)
             ->selectRaw($bucket.' AS bucket')
-            ->selectRaw($sum);
+            ->selectRaw($sum)
+            ->get();
 
-        // Sales returns are soft-deleting; expenses and vendor bills are not.
-        if ($table === 'sales_returns') {
-            $query->whereNull('deleted_at');
-        }
-
-        return self::keyed($query->get());
+        return self::keyed($rows);
     }
 
     /**
