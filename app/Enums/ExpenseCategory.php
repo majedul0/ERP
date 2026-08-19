@@ -27,7 +27,7 @@ enum ExpenseCategory: string
     {
         return match ($this) {
             self::Rent => 'Rent',
-            self::Salary => 'Salary & Wages',
+            self::Salary => 'Salary & Wages (recorded in Payroll)',
             self::Utilities => 'Utilities',
             self::Transport => 'Transport & Delivery',
             self::Marketing => 'Marketing',
@@ -38,13 +38,36 @@ enum ExpenseCategory: string
     }
 
     /**
+     * Whether this category may be chosen for a new expense.
+     *
+     * Only Salary is closed, and only since payroll arrived: wages are recorded
+     * there and counted from `salary_payments`, so an expense under this
+     * category would be the same money a second time. The case stays — rows
+     * recorded before payroll existed keep their meaning, keep reporting under
+     * this label, and can still be edited.
+     */
+    public function selectable(): bool
+    {
+        return $this !== self::Salary;
+    }
+
+    /**
+     * The categories a form may offer.
+     *
+     * `$including` re-admits one that is otherwise closed, so an expense
+     * already recorded under Salary can still be opened and saved without the
+     * form silently changing what it was for.
+     *
      * @return array<int, array{value: string, label: string}>
      */
-    public static function options(): array
+    public static function options(?self $including = null): array
     {
-        return array_map(
+        return array_values(array_map(
             fn (self $category) => ['value' => $category->value, 'label' => $category->label()],
-            self::cases(),
-        );
+            array_filter(
+                self::cases(),
+                fn (self $category) => $category->selectable() || $category === $including,
+            ),
+        ));
     }
 }
