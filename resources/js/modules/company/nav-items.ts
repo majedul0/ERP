@@ -1,10 +1,17 @@
 import { dashboard } from '@/routes';
+import { index as attendanceIndex } from '@/routes/attendance';
 import { index as banksIndex } from '@/routes/banks';
 import { index as billsIndex } from '@/routes/bills';
+import { index as bonusesIndex } from '@/routes/bonuses';
+import { index as departmentsIndex } from '@/routes/departments';
 import {
     index as distributorsIndex,
     create as newDistributor,
 } from '@/routes/distributors';
+import {
+    index as employeesIndex,
+    create as newEmployee,
+} from '@/routes/employees';
 import { index as expensesIndex } from '@/routes/expenses';
 import {
     create as newInvoice,
@@ -15,6 +22,7 @@ import {
     index as paymentsIndex,
     record as recordPayment,
 } from '@/routes/payments';
+import { index as payrollIndex } from '@/routes/payroll';
 import {
     index as productsIndex,
     create as newProduct,
@@ -22,6 +30,7 @@ import {
 import { index as purchasesIndex } from '@/routes/purchases';
 import { index as reportsIndex } from '@/routes/reports';
 import { index as returnsIndex, create as newReturn } from '@/routes/returns';
+import { index as salaryPaymentsIndex } from '@/routes/salary-payments';
 import { index as stockLevelsIndex } from '@/routes/stock-levels';
 import { index as stockReportIndex } from '@/routes/stock-reports';
 import { index as vendorPaymentsIndex } from '@/routes/vendor-payments';
@@ -182,6 +191,60 @@ export function companyNavItems(
                         title: 'Reports',
                         href: reportsIndex(teamSlug).url,
                         can: ['report:view'],
+                    },
+                ],
+            },
+            {
+                /*
+                 * Beside Finance, because payroll ends up there — but its own
+                 * heading, since who works here is a different question from
+                 * what the company earned. Attendance and Payroll arrive in the
+                 * phases after this one and render as "Soon" until they do.
+                 */
+                title: 'People',
+                can: [
+                    'employee:view',
+                    'employee:manage',
+                    'attendance:view',
+                    'attendance:manage',
+                    'payroll:view',
+                    'payroll:manage',
+                ],
+                items: [
+                    {
+                        title: 'All Employees',
+                        href: employeesIndex(teamSlug).url,
+                        can: ['employee:view', 'employee:manage'],
+                    },
+                    {
+                        title: 'New Employee',
+                        href: newEmployee(teamSlug).url,
+                        can: ['employee:manage'],
+                    },
+                    {
+                        title: 'Departments',
+                        href: departmentsIndex(teamSlug).url,
+                        can: ['employee:view', 'employee:manage'],
+                    },
+                    {
+                        title: 'Attendance',
+                        href: attendanceIndex(teamSlug).url,
+                        can: ['attendance:view', 'attendance:manage'],
+                    },
+                    {
+                        title: 'Payroll',
+                        href: payrollIndex(teamSlug).url,
+                        can: ['payroll:view', 'payroll:manage'],
+                    },
+                    {
+                        title: 'Salary Payments',
+                        href: salaryPaymentsIndex(teamSlug).url,
+                        can: ['payroll:view', 'payroll:manage'],
+                    },
+                    {
+                        title: 'Bonuses',
+                        href: bonusesIndex(teamSlug).url,
+                        can: ['payroll:view', 'payroll:manage'],
                     },
                 ],
             },

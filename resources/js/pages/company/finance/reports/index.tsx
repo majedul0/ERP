@@ -171,8 +171,15 @@ export default function Reports({
                 />
                 <Card
                     label="Expenses"
-                    value={money(report.money.expenses)}
+                    value={money(
+                        report.money.expenses + report.money.salaryPaid,
+                    )}
                     tone="bad"
+                    hint={
+                        report.money.salaryPaid > 0
+                            ? `Including ${money(report.money.salaryPaid)} in wages`
+                            : undefined
+                    }
                 />
                 <Card
                     label="Net cash"
@@ -226,6 +233,14 @@ export default function Reports({
                         <Row
                             label="Expenses"
                             value={money(report.money.expenses)}
+                        />
+                        {/* Wages are their own line rather than folded into
+                            Expenses, because the card has to add up: without
+                            it, Received less Expenses less Vendors did not
+                            reach Net cash and the difference had no name. */}
+                        <Row
+                            label="Paid in wages"
+                            value={money(report.money.salaryPaid)}
                         />
                         <Row
                             label="Paid to vendors"

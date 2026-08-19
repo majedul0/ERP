@@ -126,6 +126,39 @@ class PermissionEnforcementTest extends TestCase
         $this->actingAs($member)->get($this->url('raw-materials'))->assertForbidden();
     }
 
+    /**
+     * A salesperson has no business reading a colleague's record, so none of
+     * the People screens are in the Member role's list.
+     */
+    public function test_a_member_cannot_reach_the_people_screens_by_default()
+    {
+        $member = $this->member();
+
+        $this->actingAs($member)->get($this->url('hr/employees'))->assertForbidden();
+        $this->actingAs($member)->get($this->url('hr/departments'))->assertForbidden();
+        $this->actingAs($member)->get($this->url('hr/employees/create'))->assertForbidden();
+        $this->actingAs($member)->get($this->url('hr/attendance'))->assertForbidden();
+        $this->actingAs($member)->get($this->url('hr/holidays'))->assertForbidden();
+        $this->actingAs($member)->get($this->url('hr/payroll'))->assertForbidden();
+        $this->actingAs($member)->get($this->url('hr/salary-payments'))->assertForbidden();
+    }
+
+    /**
+     * Attendance is the one People permission a supervisor plausibly gets on
+     * its own, and it must not carry the registry — or a salary — with it.
+     */
+    public function test_attendance_permission_does_not_open_the_employee_registry()
+    {
+        $member = $this->member([TeamPermission::ViewAttendance]);
+
+        $this->actingAs($member)->get($this->url('hr/attendance'))->assertOk();
+
+        $this->actingAs($member)->get($this->url('hr/employees'))->assertForbidden();
+        $this->actingAs($member)->get($this->url('hr/employees/create'))->assertForbidden();
+        // And above all, not the money.
+        $this->actingAs($member)->get($this->url('hr/payroll'))->assertForbidden();
+    }
+
     public function test_a_tailored_permission_grants_exactly_that_screen()
     {
         $member = $this->member([TeamPermission::ViewReports]);
@@ -165,6 +198,9 @@ class PermissionEnforcementTest extends TestCase
         $this->actingAs($admin)->get($this->url('finance/reports'))->assertOk();
         $this->actingAs($admin)->get($this->url('vendors'))->assertOk();
         $this->actingAs($admin)->get($this->url('finance/expenses'))->assertOk();
+        // Including the People screens: an admin inherits every case, which is
+        // the decision recorded against `payroll:view` — see TeamRole.
+        $this->actingAs($admin)->get($this->url('hr/employees'))->assertOk();
 
         $this->assertFalse($admin->hasTeamPermission($this->team, TeamPermission::DeleteTeam));
     }

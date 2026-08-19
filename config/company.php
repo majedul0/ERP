@@ -72,6 +72,20 @@ return [
             'max_kilobytes' => 2048,
         ],
 
+        /*
+         * Staff photos. Public like product photos rather than private: they
+         * appear on the employee list and on a payslip, both of which are
+         * rendered in the browser, and a signed route per thumbnail would be a
+         * request each for no privacy gain — the path is unguessable and
+         * namespaced per tenant.
+         */
+        'employee_photos' => [
+            'disk' => 'public',
+            'path' => 'employees',
+            'name_prefix' => 'employee',
+            'max_kilobytes' => 2048,
+        ],
+
         'logos' => [
             'disk' => 'public',
             'path' => 'logos',

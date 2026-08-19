@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Expenses;
 
 use App\Enums\ExpenseCategory;
+use App\Models\Expense;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -17,7 +18,21 @@ class SaveExpenseRequest extends FormRequest
         $teamId = $this->user()?->currentTeam?->id;
 
         return [
-            'category' => ['required', Rule::enum(ExpenseCategory::class)],
+            /*
+             * Salary is closed to new expenses: wages are recorded in Payroll
+             * and counted from `salary_payments`, so an expense under it would
+             * be the same money twice.
+             *
+             * Asymmetric on purpose — an expense already recorded under Salary
+             * can still be edited and saved, or its category would silently
+             * change the first time somebody fixed a typo in the description.
+             * Enforced here rather than by leaving it off the form, because a
+             * hidden option is still a postable value.
+             */
+            'category' => [
+                'required',
+                Rule::enum(ExpenseCategory::class)->only($this->allowedCategories()),
+            ],
             'description' => ['required', 'string', 'max:255'],
             'spent_on' => ['required', 'date'],
 
@@ -32,6 +47,27 @@ class SaveExpenseRequest extends FormRequest
             ],
             'note' => ['nullable', 'string', 'max:255'],
         ];
+    }
+
+    /**
+     * The categories this particular request may set.
+     *
+     * @return array<int, ExpenseCategory>
+     */
+    private function allowedCategories(): array
+    {
+        $categories = array_values(array_filter(
+            ExpenseCategory::cases(),
+            fn (ExpenseCategory $category) => $category->selectable(),
+        ));
+
+        $expense = $this->route('expense');
+
+        if ($expense instanceof Expense && ! $expense->category->selectable()) {
+            $categories[] = $expense->category;
+        }
+
+        return $categories;
     }
 
     /**

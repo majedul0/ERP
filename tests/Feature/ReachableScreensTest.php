@@ -60,6 +60,8 @@ class ReachableScreensTest extends TestCase
             'vendor payments' => ['vendor-payments.create'],
             'expenses' => ['expenses.create'],
             'raw materials' => ['materials.create'],
+            'employees' => ['employees.create'],
+            'salary payments' => ['salary-payments.create'],
             'material purchases' => ['purchases.create'],
         ];
     }
@@ -96,6 +98,15 @@ class ReachableScreensTest extends TestCase
             'raw materials' => ['materials.index'],
             'material purchases' => ['purchases.index'],
             'stock levels' => ['stock-levels.index'],
+            'employees' => ['employees.index'],
+            'departments' => ['departments.index'],
+            'attendance' => ['attendance.index'],
+            'attendance summary' => ['attendance.summary'],
+            'holidays' => ['holidays.index'],
+            'payroll' => ['payroll.index'],
+            'salary rates' => ['salary-rates.index'],
+            'salary payments' => ['salary-payments.index'],
+            'bonuses' => ['bonuses.index'],
         ];
     }
 

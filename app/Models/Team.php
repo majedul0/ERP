@@ -45,6 +45,13 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, SalesReturn> $salesReturns
  * @property-read Collection<int, Bank> $banks
  * @property-read Collection<int, Payment> $payments
+ * @property-read Collection<int, Department> $departments
+ * @property-read Collection<int, Employee> $employees
+ * @property-read Collection<int, Holiday> $holidays
+ * @property-read Collection<int, AttendanceRecord> $attendanceRecords
+ * @property-read Collection<int, PayrollRun> $payrollRuns
+ * @property-read Collection<int, SalaryPayment> $salaryPayments
+ * @property-read Collection<int, EmployeeBonus> $employeeBonuses
  */
 #[Fillable([
     'name',
@@ -179,6 +186,70 @@ class Team extends Model
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    /**
+     * @return HasMany<Department, $this>
+     */
+    public function departments(): HasMany
+    {
+        return $this->hasMany(Department::class);
+    }
+
+    /**
+     * The people who work here — not the people who can log in. See Employee.
+     *
+     * @return HasMany<Employee, $this>
+     */
+    public function employees(): HasMany
+    {
+        return $this->hasMany(Employee::class);
+    }
+
+    /**
+     * @return HasMany<Holiday, $this>
+     */
+    public function holidays(): HasMany
+    {
+        return $this->hasMany(Holiday::class);
+    }
+
+    /**
+     * @return HasMany<AttendanceRecord, $this>
+     */
+    public function attendanceRecords(): HasMany
+    {
+        return $this->hasMany(AttendanceRecord::class);
+    }
+
+    /**
+     * @return HasMany<PayrollRun, $this>
+     */
+    public function payrollRuns(): HasMany
+    {
+        return $this->hasMany(PayrollRun::class);
+    }
+
+    /**
+     * Wages leaving the company — the only table they leave by.
+     *
+     * FinancialReport::money() takes a single sum from here, which is what
+     * makes double-counting salary structurally impossible. See the note on
+     * ExpenseCategory::Salary.
+     *
+     * @return HasMany<SalaryPayment, $this>
+     */
+    public function salaryPayments(): HasMany
+    {
+        return $this->hasMany(SalaryPayment::class);
+    }
+
+    /**
+     * @return HasMany<EmployeeBonus, $this>
+     */
+    public function employeeBonuses(): HasMany
+    {
+        return $this->hasMany(EmployeeBonus::class);
     }
 
     /**

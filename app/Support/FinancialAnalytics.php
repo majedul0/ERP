@@ -48,12 +48,20 @@ final class FinancialAnalytics
         $bills = self::bucketed($team, $from, $to, 'vendor_bills', 'billed_on',
             self::bucket('billed_on', $yearly), 'COALESCE(SUM(amount), 0) AS total');
 
+        /*
+         * Wages, on a cash basis to match FinancialReport::money(): the trend
+         * and the report below it must state the same figure for the same
+         * month, and the report counts money as it leaves.
+         */
+        $salaries = self::bucketed($team, $from, $to, 'salary_payments', 'paid_on',
+            self::bucket('paid_on', $yearly), 'COALESCE(SUM(amount), 0) AS total');
+
         $buckets = [];
 
         foreach (self::keys($yearly, $from, $to) as $bucket) {
             $key = $bucket['key'];
             $earned = ($revenue[$key] ?? 0) - ($returns[$key] ?? 0);
-            $spent = ($expenses[$key] ?? 0) + ($bills[$key] ?? 0);
+            $spent = ($expenses[$key] ?? 0) + ($bills[$key] ?? 0) + ($salaries[$key] ?? 0);
 
             $buckets[] = [
                 'key' => $key,
@@ -139,7 +147,8 @@ final class FinancialAnalytics
             ->where('team_id', $team->id)
             ->whereNull('deleted_at')
             ->whereIn('delivery_status', $live)
-            ->whereBetween('sold_at', [$from->toDateString(), $to->toDateString()])
+            ->whereDate('sold_at', '>=', $from->toDateString())
+            ->whereDate('sold_at', '<=', $to->toDateString())
             ->groupByRaw($bucket)
             ->selectRaw($bucket.' AS bucket')
             ->selectRaw('COALESCE(SUM(invoice_total - discount_total - scheme_amount), 0) AS total')
@@ -175,7 +184,10 @@ final class FinancialAnalytics
              * the next caller will not remember either.
              */
             ->whereNull('deleted_at')
-            ->whereBetween($dateColumn, [$from->toDateString(), $to->toDateString()])
+            // whereDate, not whereBetween — see the note in
+            // FinancialReport::money() about the closing day.
+            ->whereDate($dateColumn, '>=', $from->toDateString())
+            ->whereDate($dateColumn, '<=', $to->toDateString())
             ->groupByRaw($bucket)
             ->selectRaw($bucket.' AS bucket')
             ->selectRaw($sum)
@@ -197,7 +209,7 @@ final class FinancialAnalytics
      * reaches the query builder is one written here — a column name arriving
      * from anywhere else can never become SQL.
      *
-     * @param  'sold_at'|'returned_on'|'spent_on'|'billed_on'  $column
+     * @param  'sold_at'|'returned_on'|'spent_on'|'billed_on'|'paid_on'  $column
      * @return literal-string
      */
     private static function bucket(string $column, bool $yearly): string
@@ -215,6 +227,9 @@ final class FinancialAnalytics
             'billed_on' => $yearly
                 ? 'substr(cast(billed_on as varchar), 1, 4)'
                 : 'substr(cast(billed_on as varchar), 1, 7)',
+            'paid_on' => $yearly
+                ? 'substr(cast(paid_on as varchar), 1, 4)'
+                : 'substr(cast(paid_on as varchar), 1, 7)',
         };
     }
 

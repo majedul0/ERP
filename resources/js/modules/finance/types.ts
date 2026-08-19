@@ -12,6 +12,21 @@ export type Expense = {
     note: string | null;
 };
 
+/**
+ * A wage shown on the expenses screen.
+ *
+ * Read from `salary_payments`, never copied into `expenses` — which is why it
+ * has no id you can edit against and no category value, only a label.
+ */
+export type WageRow = {
+    id: number;
+    categoryLabel: string;
+    description: string;
+    spentOn: string;
+    amount: number;
+    bankName: string | null;
+};
+
 /** One selectable category, from App\Enums\ExpenseCategory. */
 export type ExpenseCategoryOption = {
     value: string;
@@ -67,6 +82,12 @@ export type FinancialReport = {
         received: number;
         expenses: number;
         vendorPaid: number;
+        /**
+         * Wages, from `salary_payments` — the one table they leave by. Its own
+         * figure rather than folded into `expenses`, so the money card adds up
+         * and the difference between what came in and what is left has a name.
+         */
+        salaryPaid: number;
         materialPurchases: number;
         vendorBilled: number;
         netCash: number;

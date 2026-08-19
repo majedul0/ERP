@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\DeliveryStatus;
+use App\Enums\ExpenseCategory;
 use App\Models\Expense;
 use App\Models\Team;
 use Illuminate\Support\Carbon;
@@ -73,7 +74,10 @@ final class FinancialReport
          * statement it was printed from.
          */
         $returns = (int) $team->salesReturns()
-            ->whereBetween('returned_on', [$from->toDateString(), $to->toDateString()])
+            // whereDate for the reason spelled out in money(): a return
+            // recorded on the closing day belongs to the period.
+            ->whereDate('returned_on', '>=', $from->toDateString())
+            ->whereDate('returned_on', '<=', $to->toDateString())
             ->sum('return_total');
 
         return [
@@ -95,18 +99,47 @@ final class FinancialReport
      */
     private static function money(Team $team, Carbon $from, Carbon $to): array
     {
-        $range = [$from->toDateString(), $to->toDateString()];
+        $first = $from->toDateString();
+        $last = $to->toDateString();
 
-        $received = (int) $team->payments()->whereBetween('paid_on', $range)->sum('amount');
-        $expenses = (int) $team->expenses()->whereBetween('spent_on', $range)->sum('amount');
-        $vendorPaid = (int) $team->vendorPayments()->whereBetween('paid_on', $range)->sum('amount');
-        $materials = (int) $team->materialPurchases()->whereBetween('purchased_at', $range)->sum('total_amount');
-        $vendorBilled = (int) $team->vendorBills()->whereBetween('billed_on', $range)->sum('amount');
+        /*
+         * `whereDate`, not `whereBetween`, and the difference is the last day
+         * of the period.
+         *
+         * Laravel's `date` cast writes `2026-08-31 00:00:00`. Postgres stores
+         * that in a real DATE column and truncates it, so a plain string range
+         * works there — but sqlite keeps the text, and `'2026-08-31 00:00:00'`
+         * sorts *after* `'2026-08-31'`, silently dropping everything recorded
+         * on the closing day. The test suite runs on sqlite, so the pattern
+         * made a whole class of boundary bug invisible to it. `whereDate` casts
+         * the column on both engines and means the same thing in each.
+         */
+        $inPeriod = fn ($query, string $column) => $query
+            ->whereDate($column, '>=', $first)
+            ->whereDate($column, '<=', $last);
+
+        $received = (int) $inPeriod($team->payments(), 'paid_on')->sum('amount');
+        $expenses = (int) $inPeriod($team->expenses(), 'spent_on')->sum('amount');
+        $vendorPaid = (int) $inPeriod($team->vendorPayments(), 'paid_on')->sum('amount');
+        $materials = (int) $inPeriod($team->materialPurchases(), 'purchased_at')->sum('total_amount');
+        $vendorBilled = (int) $inPeriod($team->vendorBills(), 'billed_on')->sum('amount');
+
+        /*
+         * Wages, taken from `salary_payments` and nowhere else.
+         *
+         * Payroll lines are an entitlement, not a cash movement — an approved
+         * run says what people are owed, and only a payment moves money. This
+         * is also why `ExpenseCategory::Salary` is no longer offered on the
+         * expense form: with two places to record a wage, every company would
+         * eventually use both and the report would count it twice.
+         */
+        $salaryPaid = (int) $inPeriod($team->salaryPayments(), 'paid_on')->sum('amount');
 
         return [
             'received' => $received,
             'expenses' => $expenses,
             'vendorPaid' => $vendorPaid,
+            'salaryPaid' => $salaryPaid,
             'materialPurchases' => $materials,
             'vendorBilled' => $vendorBilled,
 
@@ -114,9 +147,10 @@ final class FinancialReport
              * Money actually in hand over the period. Material purchases are
              * excluded: they are recorded against a supplier bill rather than a
              * cash movement, so counting both would take the same money out
-             * twice.
+             * twice. Payroll lines are excluded for the same reason — an
+             * entitlement is not cash, and `salaryPaid` is the movement.
              */
-            'netCash' => $received - $expenses - $vendorPaid,
+            'netCash' => $received - $expenses - $vendorPaid - $salaryPaid,
         ];
     }
 
@@ -131,8 +165,9 @@ final class FinancialReport
      */
     public static function expensesByCategory(Team $team, Carbon $from, Carbon $to): array
     {
-        return $team->expenses()
-            ->whereBetween('spent_on', [$from->toDateString(), $to->toDateString()])
+        $byCategory = $team->expenses()
+            ->whereDate('spent_on', '>=', $from->toDateString())
+            ->whereDate('spent_on', '<=', $to->toDateString())
             ->get()
             ->groupBy(fn (Expense $expense) => $expense->category->value)
             ->map(fn ($group, string $category) => [
@@ -140,6 +175,36 @@ final class FinancialReport
                 'label' => $group->first()->category->label(),
                 'amount' => (int) $group->sum('amount'),
             ])
+            ->all();
+
+        /*
+         * Wages are a category of spending like any other, even though they
+         * live in their own table — a breakdown of where the money went that
+         * omits the payroll is answering a different question from the one it
+         * appears to.
+         *
+         * Merged into the `salary` slot rather than added beside it, so a
+         * company that recorded wages as expenses before payroll existed does
+         * not end up with two slices both labelled Salary & Wages. The label is
+         * set here rather than taken from the enum, whose own label carries the
+         * "recorded in Payroll" note that belongs on a form, not on a chart.
+         */
+        $salaryPaid = (int) $team->salaryPayments()
+            ->whereDate('paid_on', '>=', $from->toDateString())
+            ->whereDate('paid_on', '<=', $to->toDateString())
+            ->sum('amount');
+
+        $key = ExpenseCategory::Salary->value;
+
+        if ($salaryPaid > 0 || isset($byCategory[$key])) {
+            $byCategory[$key] = [
+                'category' => $key,
+                'label' => __('Salary & Wages'),
+                'amount' => ($byCategory[$key]['amount'] ?? 0) + $salaryPaid,
+            ];
+        }
+
+        return collect($byCategory)
             ->sortByDesc('amount')
             ->values()
             ->all();

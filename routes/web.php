@@ -3,9 +3,18 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Distributors\DistributorController;
 use App\Http\Controllers\Distributors\StatementController;
+use App\Http\Controllers\Employees\DepartmentController;
+use App\Http\Controllers\Employees\EmployeeController;
 use App\Http\Controllers\Finance\ExpenseController;
 use App\Http\Controllers\Finance\ReportController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Hr\AttendanceController;
+use App\Http\Controllers\Hr\BonusController;
+use App\Http\Controllers\Hr\HolidayController;
+use App\Http\Controllers\Hr\PayrollRunController;
+use App\Http\Controllers\Hr\PayslipController;
+use App\Http\Controllers\Hr\SalaryPaymentController;
+use App\Http\Controllers\Hr\SalaryRateController;
 use App\Http\Controllers\Invoices\InvoiceController;
 use App\Http\Controllers\Payments\BankController;
 use App\Http\Controllers\Payments\PaymentController;
@@ -138,6 +147,99 @@ Route::prefix('{current_team}')
             Route::get('sales/returns/{return}/edit', [SalesReturnController::class, 'edit'])->name('returns.edit');
             Route::put('sales/returns/{return}', [SalesReturnController::class, 'update'])->name('returns.update');
             Route::delete('sales/returns/{return}', [SalesReturnController::class, 'destroy'])->name('returns.destroy');
+        });
+
+        /*
+         * People.
+         *
+         * `employee:*` covers who works here; what they are paid is gated
+         * separately on `payroll:*`, and no route in this block discloses a
+         * figure. Departments ride on the employee permissions — the list is
+         * only ever read while filling in an employee form.
+         *
+         * `hr/employees/create` and `hr/departments` are declared before
+         * `hr/employees/{employee}` for the reason the products block spells
+         * out: registration order decides matching, and a literal read as an id
+         * is a 500 on Postgres.
+         */
+        Route::middleware(EnsureTeamPermission::class.':employee:manage')->group(function () {
+            Route::get('hr/employees/create', [EmployeeController::class, 'create'])->name('employees.create');
+            Route::post('hr/employees', [EmployeeController::class, 'store'])->name('employees.store');
+        });
+
+        Route::middleware(EnsureTeamPermission::class.':employee:view,employee:manage')->group(function () {
+            Route::get('hr/employees', [EmployeeController::class, 'index'])->name('employees.index');
+            Route::get('hr/departments', [DepartmentController::class, 'index'])->name('departments.index');
+            Route::get('hr/employees/{employee}', [EmployeeController::class, 'show'])->name('employees.show');
+        });
+
+        Route::middleware(EnsureTeamPermission::class.':employee:manage')->group(function () {
+            Route::post('hr/departments', [DepartmentController::class, 'store'])->name('departments.store');
+            Route::put('hr/departments/{department}', [DepartmentController::class, 'update'])->name('departments.update');
+            Route::delete('hr/departments/{department}', [DepartmentController::class, 'destroy'])->name('departments.destroy');
+
+            Route::get('hr/employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
+            Route::put('hr/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
+            Route::delete('hr/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
+        });
+
+        /*
+         * Attendance.
+         *
+         * Its own permission pair: a floor supervisor marks the grid every
+         * morning and has no business in the registry or the payroll figures.
+         * The working week and the holidays that shape it are managed by
+         * whoever can correct attendance.
+         */
+        Route::middleware(EnsureTeamPermission::class.':attendance:view,attendance:manage')->group(function () {
+            Route::get('hr/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+            Route::get('hr/attendance/summary', [AttendanceController::class, 'summary'])->name('attendance.summary');
+            Route::get('hr/attendance/excel', [AttendanceController::class, 'excel'])
+                ->middleware('throttle:30,1')
+                ->name('attendance.excel');
+            Route::get('hr/holidays', [HolidayController::class, 'index'])->name('holidays.index');
+        });
+
+        Route::middleware(EnsureTeamPermission::class.':attendance:manage')->group(function () {
+            Route::put('hr/attendance', [AttendanceController::class, 'update'])->name('attendance.update');
+            Route::post('hr/holidays', [HolidayController::class, 'store'])->name('holidays.store');
+            Route::put('hr/holidays/settings', [HolidayController::class, 'updateSettings'])->name('holidays.settings.update');
+            Route::delete('hr/holidays/{holiday}', [HolidayController::class, 'destroy'])->name('holidays.destroy');
+        });
+
+        /*
+         * Payroll — the sensitive half of People.
+         *
+         * `payroll:view` is what opens a salary figure; `employee:view` does
+         * not, so a supervisor with the registry and the attendance grid still
+         * sees no money. Every literal is declared before `{run}` and
+         * `{employee}` so it can never be read as an id.
+         */
+        Route::middleware(EnsureTeamPermission::class.':payroll:view,payroll:manage')->group(function () {
+            Route::get('hr/payroll', [PayrollRunController::class, 'index'])->name('payroll.index');
+            Route::get('hr/payroll/rates', [SalaryRateController::class, 'index'])->name('salary-rates.index');
+            Route::get('hr/salary-payments', [SalaryPaymentController::class, 'index'])->name('salary-payments.index');
+            Route::get('hr/bonuses', [BonusController::class, 'index'])->name('bonuses.index');
+            Route::get('hr/payroll/{run}', [PayrollRunController::class, 'show'])->name('payroll.show');
+            Route::get('hr/payroll/{run}/payslips', [PayslipController::class, 'index'])->name('payslips.index');
+            Route::get('hr/employees/{employee}/statement', [PayslipController::class, 'statement'])->name('employees.statement');
+        });
+
+        Route::middleware(EnsureTeamPermission::class.':payroll:manage')->group(function () {
+            Route::post('hr/payroll/open', [PayrollRunController::class, 'open'])->name('payroll.open');
+            Route::post('hr/payroll/rates', [SalaryRateController::class, 'store'])->name('salary-rates.store');
+            Route::delete('hr/payroll/rates/{rate}', [SalaryRateController::class, 'destroy'])->name('salary-rates.destroy');
+
+            Route::get('hr/salary-payments/create', [SalaryPaymentController::class, 'create'])->name('salary-payments.create');
+            Route::post('hr/salary-payments', [SalaryPaymentController::class, 'store'])->name('salary-payments.store');
+            Route::delete('hr/salary-payments/{payment}', [SalaryPaymentController::class, 'destroy'])->name('salary-payments.destroy');
+
+            Route::post('hr/bonuses', [BonusController::class, 'store'])->name('bonuses.store');
+            Route::delete('hr/bonuses/{bonus}', [BonusController::class, 'destroy'])->name('bonuses.destroy');
+
+            Route::put('hr/payroll/{run}', [PayrollRunController::class, 'update'])->name('payroll.update');
+            Route::post('hr/payroll/{run}/approve', [PayrollRunController::class, 'approve'])->name('payroll.approve');
+            Route::post('hr/payroll/{run}/reopen', [PayrollRunController::class, 'reopen'])->name('payroll.reopen');
         });
 
         Route::get('products', [ProductController::class, 'index'])
