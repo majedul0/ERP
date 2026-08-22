@@ -27,7 +27,7 @@ class SaveVendorBillRequest extends FormRequest
             ],
             'reference' => ['nullable', 'string', 'max:64'],
             'description' => ['nullable', 'string', 'max:255'],
-            'billed_on' => ['required', 'date'],
+            'billed_on' => ['required', 'date_format:Y-m-d'],
 
             // Whole amounts, and at least 1 — a zero bill is a no-op that would
             // only clutter the statement.
