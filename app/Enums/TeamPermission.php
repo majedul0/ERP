@@ -73,6 +73,17 @@ enum TeamPermission: string
     case ViewPayroll = 'payroll:view';
     case ManagePayroll = 'payroll:manage';
 
+    /*
+     * The company's own papers.
+     *
+     * Its own pair rather than riding on `team:update`, because the audiences
+     * differ in both directions: an accountant may need to produce the VAT
+     * certificate without being able to rename the company, and a manager who
+     * can edit company details has no business downloading the bank mandates.
+     */
+    case ViewDocuments = 'document:view';
+    case ManageDocuments = 'document:manage';
+
     public function label(): string
     {
         return match ($this) {
@@ -115,6 +126,9 @@ enum TeamPermission: string
             self::ManageAttendance => 'Mark and correct attendance',
             self::ViewPayroll => 'View salaries and payslips',
             self::ManagePayroll => 'Run payroll and record salary payments',
+
+            self::ViewDocuments => 'View and download company documents',
+            self::ManageDocuments => 'Upload, edit and remove documents',
         };
     }
 
@@ -147,6 +161,8 @@ enum TeamPermission: string
             self::ViewEmployees, self::ManageEmployees => 'Employees',
             self::ViewAttendance, self::ManageAttendance => 'Attendance',
             self::ViewPayroll, self::ManagePayroll => 'Payroll',
+
+            self::ViewDocuments, self::ManageDocuments => 'Documents',
         };
     }
 
