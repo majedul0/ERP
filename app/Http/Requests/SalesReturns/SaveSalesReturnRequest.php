@@ -16,7 +16,7 @@ class SaveSalesReturnRequest extends FormRequest
         $teamId = $this->user()?->currentTeam?->id;
 
         return [
-            'returned_on' => ['required', 'date'],
+            'returned_on' => ['required', 'date_format:Y-m-d'],
 
             // Scoped to the company: an id from another tenant must not
             // resolve, or a credit could land on a stranger's account.
