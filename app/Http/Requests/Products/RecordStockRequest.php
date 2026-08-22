@@ -28,7 +28,7 @@ class RecordStockRequest extends FormRequest
             // Always positive. See above.
             'quantity' => ['required', 'integer', 'min:1', 'max:100000000'],
 
-            'occurred_on' => ['required', 'date'],
+            'occurred_on' => ['required', 'date_format:Y-m-d'],
             'reason' => [
                 'required',
                 Rule::enum(StockMovementReason::class)->only(StockMovementReason::selectable()),
