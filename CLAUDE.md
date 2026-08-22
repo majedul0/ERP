@@ -374,6 +374,33 @@ Rates are effective-dated (`employee_salary_rates`), never a column on the emplo
 June must not rewrite January's payslip. Payroll reads the latest row dated on or before the
 month's last day.
 
+### The document vault
+
+`company_documents` holds the papers a company has to be able to produce — trade licence, TIN
+and BIN certificates, insurance, tenancy agreements. Files live on the **private** disk and the
+only way to one is `DocumentController::download`, which checks the tenant before streaming a
+byte; there is no URL to guess and none to leak. Its own `document:*` permission pair rather than
+riding on `team:update`, because a manager who can rename the company has no business in the bank
+mandates.
+
+Three things it does beyond store and fetch:
+
+- **Expiry is the point.** `expires_on` is a first-class column and `DocumentStatus` derives
+  valid/expiring/expired from it against today — never stored, so the same row reads differently
+  tomorrow without a job keeping it true, exactly as `SubscriptionStatus` does. The list is sorted
+  by urgency rather than date, because somebody opening it is asking "is anything about to lapse",
+  not "what did we file last".
+- **Replacing a file keeps the old one.** The superseded copy moves to
+  `company_document_versions` and stays downloadable via `?version=`: last year's licence is what
+  proves the company was licensed last year.
+- **Inline rendering is an allowlist** (`CompanyDocument::INLINE_TYPES`).
+  `Content-Disposition: inline` on an uploaded SVG or HTML file would run its script in this app's
+  own origin, so anything else is sent as an attachment whatever it claims to be, with `nosniff`
+  alongside.
+
+Deleting soft-deletes the row and **leaves the files on disk** — a delete that shreds the only
+copy of a trade licence is not something to offer behind one confirm dialog.
+
 ### The platform panel (`/majedul`)
 
 Whoever runs this system, as opposed to the companies using it. `users.is_super_admin` is a
