@@ -101,6 +101,29 @@ return [
             'max_kilobytes' => 2048,
         ],
 
+        /*
+         * Company documents: trade licences, tax certificates, contracts.
+         *
+         * On the **private** disk, unlike logos and photos. A tax certificate
+         * carries registration numbers and a bank mandate carries account
+         * details; neither may sit behind a guessable public URL. Every read
+         * goes through DocumentController::download, which checks the tenant
+         * and the permission first.
+         */
+        'documents' => [
+            'disk' => 'local',
+            'path' => 'documents',
+            'name_prefix' => 'document',
+
+            /*
+             * Larger than a photo, because these are scans — a multi-page
+             * licence scanned at 300dpi runs to several megabytes, and a limit
+             * that forces people to re-scan is a limit that makes them keep the
+             * paper in a drawer instead.
+             */
+            'max_kilobytes' => 10240,
+        ],
+
         // Reserved for the invoicing phase; nothing writes here yet.
         'invoices' => [
             'disk' => 'local',
