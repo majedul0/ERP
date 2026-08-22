@@ -52,6 +52,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, PayrollRun> $payrollRuns
  * @property-read Collection<int, SalaryPayment> $salaryPayments
  * @property-read Collection<int, EmployeeBonus> $employeeBonuses
+ * @property-read Collection<int, CompanyDocument> $documents
  */
 #[Fillable([
     'name',
@@ -250,6 +251,16 @@ class Team extends Model
     public function employeeBonuses(): HasMany
     {
         return $this->hasMany(EmployeeBonus::class);
+    }
+
+    /**
+     * The company's own papers — licences, certificates, contracts.
+     *
+     * @return HasMany<CompanyDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(CompanyDocument::class);
     }
 
     /**
