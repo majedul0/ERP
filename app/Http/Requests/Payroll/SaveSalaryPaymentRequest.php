@@ -27,7 +27,7 @@ class SaveSalaryPaymentRequest extends FormRequest
 
             'kind' => ['required', Rule::enum(SalaryPaymentKind::class)],
 
-            'paid_on' => ['required', 'date'],
+            'paid_on' => ['required', 'date_format:Y-m-d'],
 
             // `integer`, not `numeric`: money here is whole amounts like
             // everywhere else, so a typed 5000.50 is rejected rather than
