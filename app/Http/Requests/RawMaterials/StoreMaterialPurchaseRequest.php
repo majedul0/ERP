@@ -18,7 +18,7 @@ class StoreMaterialPurchaseRequest extends FormRequest
         return [
             'supplier_name' => ['required', 'string', 'max:255'],
             'reference' => ['nullable', 'string', 'max:64'],
-            'purchased_at' => ['required', 'date'],
+            'purchased_at' => ['required', 'date_format:Y-m-d'],
             'note' => ['nullable', 'string', 'max:255'],
 
             'items' => ['required', 'array', 'min:1', 'max:100'],
