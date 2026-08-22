@@ -16,7 +16,7 @@ class SaveInvoiceRequest extends FormRequest
         $teamId = $this->user()?->currentTeam?->id;
 
         return [
-            'sold_at' => ['required', 'date'],
+            'sold_at' => ['required', 'date_format:Y-m-d'],
 
             // Scoped to the company: an id from another tenant must not
             // resolve, or an invoice could be written against a stranger.
