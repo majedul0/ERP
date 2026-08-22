@@ -76,7 +76,7 @@ class BonusController extends Controller
                     ->whereNull('deleted_at'),
             ],
             'bonus_type' => ['required', Rule::enum(BonusType::class)],
-            'awarded_on' => ['required', 'date'],
+            'awarded_on' => ['required', 'date_format:Y-m-d'],
             'amount' => ['required', 'integer', 'min:1', 'max:99999999'],
             'note' => ['nullable', 'string', 'max:255'],
         ], [
