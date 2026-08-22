@@ -34,7 +34,7 @@ class SaveExpenseRequest extends FormRequest
                 Rule::enum(ExpenseCategory::class)->only($this->allowedCategories()),
             ],
             'description' => ['required', 'string', 'max:255'],
-            'spent_on' => ['required', 'date'],
+            'spent_on' => ['required', 'date_format:Y-m-d'],
 
             // Whole amounts, and at least 1 — a zero expense is a no-op.
             'amount' => ['required', 'integer', 'min:1', 'max:999999999'],
