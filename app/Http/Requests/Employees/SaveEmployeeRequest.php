@@ -51,12 +51,12 @@ class SaveEmployeeRequest extends FormRequest
 
             'salary_type' => ['required', Rule::enum(SalaryType::class)],
 
-            'joined_on' => ['required', 'date'],
+            'joined_on' => ['required', 'date_format:Y-m-d'],
 
             // Somebody cannot leave before they arrived, and a leaving date is
             // what stops payroll counting them — worth catching here rather
             // than as a strange payslip three weeks later.
-            'left_on' => ['nullable', 'date', 'after_or_equal:joined_on'],
+            'left_on' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:joined_on'],
 
             'photo' => [
                 'nullable',
