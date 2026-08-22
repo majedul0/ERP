@@ -32,7 +32,7 @@ class SavePaymentRequest extends FormRequest
                     ->where('team_id', $teamId)
                     ->whereNull('deleted_at'),
             ],
-            'paid_on' => ['required', 'date'],
+            'paid_on' => ['required', 'date_format:Y-m-d'],
 
             // Whole amounts, and at least 1 — a zero payment is a no-op that
             // would only clutter the statement.
