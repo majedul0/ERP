@@ -104,7 +104,7 @@ class HolidayController extends Controller
         $validated = $request->validate([
             'date' => [
                 'required',
-                'date',
+                'date_format:Y-m-d',
                 Rule::unique('holidays', 'date')->where('team_id', $team->id),
             ],
             'name' => ['required', 'string', 'max:120'],
