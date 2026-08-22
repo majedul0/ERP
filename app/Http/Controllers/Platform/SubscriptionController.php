@@ -98,7 +98,7 @@ class SubscriptionController extends Controller
             // `integer`, not `numeric`: whole amounts everywhere, and a typed
             // `2500.50` is a mistake to correct rather than round.
             'amount' => ['required', 'integer', 'min:1', 'max:999999999'],
-            'paid_on' => ['required', 'date'],
+            'paid_on' => ['required', 'date_format:Y-m-d'],
             'method' => ['nullable', 'string', 'max:64'],
             'note' => ['nullable', 'string', 'max:255'],
         ], [
