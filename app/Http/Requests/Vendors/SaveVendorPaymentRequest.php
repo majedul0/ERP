@@ -30,7 +30,7 @@ class SaveVendorPaymentRequest extends FormRequest
                     ->where('team_id', $teamId)
                     ->whereNull('deleted_at'),
             ],
-            'paid_on' => ['required', 'date'],
+            'paid_on' => ['required', 'date_format:Y-m-d'],
             'amount' => ['required', 'integer', 'min:1', 'max:999999999'],
             'comment' => ['nullable', 'string', 'max:255'],
         ];
