@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Distributors\DistributorController;
 use App\Http\Controllers\Distributors\StatementController;
+use App\Http\Controllers\Documents\DocumentController;
 use App\Http\Controllers\Employees\DepartmentController;
 use App\Http\Controllers\Employees\EmployeeController;
 use App\Http\Controllers\Finance\ExpenseController;
@@ -147,6 +148,38 @@ Route::prefix('{current_team}')
             Route::get('sales/returns/{return}/edit', [SalesReturnController::class, 'edit'])->name('returns.edit');
             Route::put('sales/returns/{return}', [SalesReturnController::class, 'update'])->name('returns.update');
             Route::delete('sales/returns/{return}', [SalesReturnController::class, 'destroy'])->name('returns.destroy');
+        });
+
+        /*
+         * The company's papers.
+         *
+         * `documents/create` is declared before `documents/{document}` for the
+         * reason the products block spells out: registration order decides
+         * matching, and a literal read as an id is a 500 on Postgres.
+         */
+        Route::middleware(EnsureTeamPermission::class.':document:manage')->group(function () {
+            Route::get('documents/create', [DocumentController::class, 'create'])->name('documents.create');
+            Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');
+        });
+
+        Route::middleware(EnsureTeamPermission::class.':document:view,document:manage')->group(function () {
+            Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
+            Route::get('documents/{document}', [DocumentController::class, 'show'])->name('documents.show');
+
+            /*
+             * The only way a stored file is ever read. Throttled because it
+             * streams from disk, and named `download` rather than `file` so the
+             * Wayfinder export reads as the verb it is.
+             */
+            Route::get('documents/{document}/download', [DocumentController::class, 'download'])
+                ->middleware('throttle:60,1')
+                ->name('documents.download');
+        });
+
+        Route::middleware(EnsureTeamPermission::class.':document:manage')->group(function () {
+            Route::get('documents/{document}/edit', [DocumentController::class, 'edit'])->name('documents.edit');
+            Route::put('documents/{document}', [DocumentController::class, 'update'])->name('documents.update');
+            Route::delete('documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
         });
 
         /*

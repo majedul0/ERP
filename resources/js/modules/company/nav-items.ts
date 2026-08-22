@@ -9,6 +9,10 @@ import {
     create as newDistributor,
 } from '@/routes/distributors';
 import {
+    index as documentsIndex,
+    create as newDocument,
+} from '@/routes/documents';
+import {
     index as employeesIndex,
     create as newEmployee,
 } from '@/routes/employees';
@@ -245,6 +249,27 @@ export function companyNavItems(
                         title: 'Bonuses',
                         href: bonusesIndex(teamSlug).url,
                         can: ['payroll:view', 'payroll:manage'],
+                    },
+                ],
+            },
+            {
+                /*
+                 * Beside People, because both are the company's own records
+                 * rather than its trade — and a licence about to lapse is the
+                 * kind of thing somebody should trip over rather than go
+                 * looking for.
+                 */
+                title: 'Documents',
+                can: ['document:view', 'document:manage'],
+                items: [
+                    {
+                        title: 'All Documents',
+                        href: documentsIndex(teamSlug).url,
+                    },
+                    {
+                        title: 'Add Document',
+                        href: newDocument(teamSlug).url,
+                        can: ['document:manage'],
                     },
                 ],
             },

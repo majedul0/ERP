@@ -141,6 +141,7 @@ class PermissionEnforcementTest extends TestCase
         $this->actingAs($member)->get($this->url('hr/holidays'))->assertForbidden();
         $this->actingAs($member)->get($this->url('hr/payroll'))->assertForbidden();
         $this->actingAs($member)->get($this->url('hr/salary-payments'))->assertForbidden();
+        $this->actingAs($member)->get($this->url('documents'))->assertForbidden();
     }
 
     /**

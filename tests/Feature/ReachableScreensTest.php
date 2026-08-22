@@ -62,6 +62,7 @@ class ReachableScreensTest extends TestCase
             'raw materials' => ['materials.create'],
             'employees' => ['employees.create'],
             'salary payments' => ['salary-payments.create'],
+            'documents' => ['documents.create'],
             'material purchases' => ['purchases.create'],
         ];
     }
@@ -107,6 +108,7 @@ class ReachableScreensTest extends TestCase
             'salary rates' => ['salary-rates.index'],
             'salary payments' => ['salary-payments.index'],
             'bonuses' => ['bonuses.index'],
+            'documents' => ['documents.index'],
         ];
     }
 
