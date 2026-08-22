@@ -77,7 +77,7 @@ class SalaryRateController extends Controller
             'amount' => ['required', 'integer', 'min:0', 'max:99999999'],
             'effective_from' => [
                 'required',
-                'date',
+                'date_format:Y-m-d',
                 /*
                  * Two rates starting the same day would make "which one
                  * applied" a coin toss. The unique index enforces it; this
