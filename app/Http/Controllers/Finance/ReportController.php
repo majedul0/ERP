@@ -84,8 +84,8 @@ class ReportController extends Controller
     private function period(Request $request): array
     {
         $validated = $request->validate([
-            'from' => ['nullable', 'date'],
-            'to' => ['nullable', 'date'],
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
         $from = isset($validated['from'])
